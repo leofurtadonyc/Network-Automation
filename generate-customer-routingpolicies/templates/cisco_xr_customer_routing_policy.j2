@@ -1,0 +1,25 @@
+{# Policy Template for Cisco IOS XR IPv4 Routing Policy #}
+route-policy {{ policy_name_ipv4 }}
+  if as-path in {{ as_path_set_name }} and destination in {{ prefix_set_ipv4_name }} and community
+ matches-any COMM-RTBH then
+    set local-preference 10000
+    set next-hop discard
+  endif
+  if as-path in {{ as_path_set_name }} and destination in {{ prefix_set_ipv4_name }} then
+    set local-preference 10000
+    delete community in COMM-CITTA-RESTRITO
+    set community COMM-CLIENTES-TRANSITO-ALL-v4 additive
+  endif
+
+{# Policy Template for Cisco IOS XR IPv6 Routing Policy #}
+route-policy {{ policy_name_ipv6 }}
+  if as-path in {{ as_path_set_name }} and destination in {{ prefix_set_ipv6_name }} and community
+ matches-any COMM-RTBH then
+    set local-preference 10000
+    set next-hop discard
+  endif
+  if as-path in {{ as_path_set_name }} and destination in {{ prefix_set_ipv6_name }} then
+    set local-preference 10000
+    delete community in COMM-CITTA-RESTRITO
+    set community COMM-CLIENTES-TRANSITO-ALL-v6 additive
+  endif

@@ -1,0 +1,43 @@
+{# Policy Template for Huawei VRP IPv4 Routing Policy #}
+xpl route-filter {{ policy_name_ipv4 }}
+ if ip route-destination in {{ ip_prefix_name }} then
+  apply local-preference 18000
+  apply community COMM-PNI-GOOGLE-v4 additive
+  apply community COMM-PEERING-PNI-ALL-v4 additive
+ endif
+ end-filter
+
+
+
+route-policy {{ policy_name_ipv4 }} permit node 1001
+ if-match ip-prefix {{ ip_prefix_name }} 
+ if-match as-path-filter {{ as_path_filter_name }}
+ if-match community-filter COMM-RTBH
+ apply local-preference 10000
+ apply ip-address next-hop 192.0.2.1
+
+route-policy {{ policy_name_ipv4 }} permit node 1002
+ if-match ip-prefix {{ ip_prefix_name }} 
+ if-match as-path-filter {{ as_path_filter_name }}
+ apply local-preference 10000
+ apply comm-filter COMM-CITTA-RESTRITO
+ apply comm-filter COMM-CLIENTES-TRANSITO-ALL-v4
+
+route-policy {{ policy_name_ipv4 }} deny node 9999
+
+{# Policy Template for Huawei VRP IPv6 Routing Policy #}
+route-policy {{ policy_name_ipv6 }} permit node 1001
+ if-match ipv6 address prefix-list {{ ipv6_prefix_name }} 
+ if-match as-path-filter {{ as_path_filter_name }}
+ if-match community-filter COMM-RTBH
+ apply local-preference 10000
+ apply ipv6 next-hop 100::
+
+route-policy {{ policy_name_ipv6 }} permit node 1002
+ if-match ipv6 address prefix-list {{ ipv6_prefix_name }} 
+ if-match as-path-filter {{ as_path_filter_name }}
+ apply local-preference 10000
+ apply comm-filter COMM-CITTA-RESTRITO
+ apply comm-filter COMM-CLIENTES-TRANSITO-ALL-v6
+
+route-policy {{ policy_name_ipv6 }} deny node 9999

@@ -1,0 +1,29 @@
+{# Policy Template for Cisco IOS XE IPv4 Routing Policy #}
+route-map {{ policy_name_ipv4 }} permit 10
+ match as-path 500
+ match community COMM-RTBH
+ match ip address prefix-list {{ prefix_list_ipv4_name }}
+ set local-preference 10000
+ set ip next-hop 192.0.2.1
+
+route-map {{ policy_name_ipv4 }} permit 20
+ match as-path 500
+ match ip address prefix-list {{ prefix_list_ipv4_name }}
+ set local-preference 10000
+ set comm-list COMM-CITTA-RESTRITO delete  
+ set community 27720:10000 additive
+
+{# Policy Template for Cisco IOS XE IPv6 Routing Policy #}
+route-map {{ policy_name_ipv6 }} permit 10
+ match as-path 500
+ match community COMM-RTBH
+ match ipv6 address prefix-list {{ prefix_list_ipv6_name }}
+ set local-preference 10000
+ set ipv6 next-hop 100::1
+
+route-map {{ policy_name_ipv6 }} permit 20
+ match as-path 500
+ match ipv6 address prefix-list {{ prefix_list_ipv6_name }}
+ set local-preference 10000
+ set comm-list COMM-CITTA-RESTRITO delete  
+ set community 27720:11000 additive

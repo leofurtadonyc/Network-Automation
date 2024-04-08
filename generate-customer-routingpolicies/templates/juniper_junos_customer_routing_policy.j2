@@ -1,0 +1,36 @@
+{# Policy Template for Juniper Routing Policy #}
+set policy-options policy-statement {{ policy_name_ipv4 }} term RTBH from family inet
+set policy-options policy-statement {{ policy_name_ipv4 }} term RTBH from protocol bgp
+set policy-options policy-statement {{ policy_name_ipv4 }} term RTBH from as-path-group {{ as_path_group_name }}
+set policy-options policy-statement {{ policy_name_ipv4 }} term RTBH from community COMM-RTBH
+set policy-options policy-statement {{ policy_name_ipv4 }} term RTBH from route-filter-list {{ route_filter_list_ipv4_name }}
+set policy-options policy-statement {{ policy_name_ipv4 }} term RTBH then local-preference 10000
+set policy-options policy-statement {{ policy_name_ipv4 }} term RTBH then next-hop discard
+set policy-options policy-statement {{ policy_name_ipv4 }} term RTBH then accept
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT from family inet
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT from protocol bgp
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT from as-path-group {{ as_path_group_name }}
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT from route-filter-list {{ route_filter_list_ipv4_name }}
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then local-preference 10000
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then community delete COMM-CITTA-RESTRITO
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then community add COMM-CLIENTES-TRANSITO-ALL-v4
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then accept
+set policy-options policy-statement {{ policy_name_ipv4 }} term 999 then reject
+
+set policy-options policy-statement {{ policy_name_ipv6 }} term RTBH from family inet6
+set policy-options policy-statement {{ policy_name_ipv6 }} term RTBH from protocol bgp
+set policy-options policy-statement {{ policy_name_ipv6 }} term RTBH from as-path-group {{ as_path_group_name }}
+set policy-options policy-statement {{ policy_name_ipv6 }} term RTBH from community COMM-RTBH
+set policy-options policy-statement {{ policy_name_ipv6 }} term RTBH from route-filter-list {{ route_filter_list_ipv4_name }}
+set policy-options policy-statement {{ policy_name_ipv6 }} term RTBH then local-preference 10000
+set policy-options policy-statement {{ policy_name_ipv6 }} term RTBH then next-hop discard
+set policy-options policy-statement {{ policy_name_ipv6 }} term RTBH then accept
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT from family inet6
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT from protocol bgp
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT from as-path-group {{ as_path_group_name }}
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT from route-filter-list {{ route_filter_list_ipv4_name }}
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then local-preference 10000
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then community delete COMM-CITTA-RESTRITO
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then community add COMM-CLIENTES-TRANSITO-ALL-v6
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then accept
+set policy-options policy-statement {{ policy_name_ipv6 }} term 999 then reject
