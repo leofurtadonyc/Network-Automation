@@ -152,7 +152,8 @@ def main():
                     "network engineers quickly and easily generate IPv4 and IPv6 prefix-lists, prefix-sets, route-filter-sets, and " 
                     "IP AS-Path access-lists in multivendor environments. "
                     "It supports the syntax of Cisco IOS, Cisco IOS XE, Cisco IOS XR, Huawei (including XPL), and Nokia SR "
-                    "but it can be easily extended to support other syntaxes as well.",
+                    "but it can be easily extended to support other syntaxes as well. "
+                    "It requires bgpq3 in order to produce both the IPv4/6 prefix lists and AS-Path access-lists.",
         epilog="Example usage: python generate-routingpolicy-prefixes.py 16509 AS16509:AS-AMAZON AMAZON",
         formatter_class=argparse.RawDescriptionHelpFormatter
         )
