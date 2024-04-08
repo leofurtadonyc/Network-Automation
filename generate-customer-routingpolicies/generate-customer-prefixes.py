@@ -5,9 +5,9 @@ import re
 
 def valid_customer_name(name):
     """Validate the customer name format."""
-    if re.match(r"^[A-Za-z0-9]{1,12}$", name):
+    if re.match(r"^[A-Za-z0-9]{1,20}$", name):
         return name
-    raise argparse.ArgumentTypeError("Customer name must be 1-12 characters long, alphanumeric, no spaces.")
+    raise argparse.ArgumentTypeError("Customer name must be 1-20 characters long, alphanumeric, no spaces.")
 
 def expand_ipv4_as_set(as_set):
     """Use bgpq3 to expand the AS-SET for IPv4 route objects."""
