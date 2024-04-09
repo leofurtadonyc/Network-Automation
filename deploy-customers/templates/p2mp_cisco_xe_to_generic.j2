@@ -1,0 +1,24 @@
+{# Policy Template for a Cisco ASR 920 L2VPN VFI towards a Cisco IOS XR PE device #}
+interface {{ interface_name }}
+ service instance {{ service_instance_id }} ethernet
+  description {{ customer_name }}-{{ service_instance_id }}
+{%- if vlan_id and vlan_id_outer %}
+  encapsulation dot1q {{ vlan_id_outer }} second-dot1q {{ vlan_id }}
+{%- endif %}
+{%- if vlan_id and not vlan_id_outer%}
+  encapsulation dot1q {{ vlan_id }}
+{%- endif %}
+{%- if device_type != 'juniper_junos' %}
+  rewrite ingress tag pop 1 symmetric
+{%- endif %}
+  service-policy input {{ qos_input }}
+  service-policy output {{ qos_output }}
+
+l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
+ vpn id {{ pw_id }}
+ mtu 9000
+ member {{ pe_address }} encapsulation mpls
+
+bridge-domain {{ service_instance_id }} 
+ member {{ interface_name }} service-instance {{ service_instance_id }}
+ member vfi {{ pw_id }}

@@ -1,0 +1,16 @@
+devices:
+  - ip_address: 10.2.0.1
+    device_type: 'cisco_xe'
+    hostname: 'a-rtr-1'
+  - ip_address: 10.2.0.2
+    device_type: 'cisco_xe'
+    hostname: 'a-rtr-2'
+  - ip_address: 10.2.0.3
+    device_type: 'cisco_xe'
+    hostname: 'a-rtr-3'
+  - ip_address: 10.2.0.200
+    device_type: 'cisco_xr'
+    hostname: 'pe-cisco-1'
+  - ip_address: 10.2.0.201
+    device_type: 'juniper_junos'
+    hostname: 'pe-juniper-1'

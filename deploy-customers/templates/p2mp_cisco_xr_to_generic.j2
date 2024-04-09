@@ -1,0 +1,22 @@
+{# Policy Template for a Cisco IOS XR L2VPN Bridge-Domain IRB towards a Cisco ASR 920 device #}
+l2vpn
+ bridge group CLIENTES-DEDICADOS
+  bridge-domain {{ customer_name }}-{{ service_instance_id }}
+   mtu 9000
+   storm-control unknown-unicast pps 1000
+   storm-control multicast pps 500
+   storm-control broadcast pps 500
+   neighbor {{ access_address }} pw-id {{ pw_id }}
+   !
+   routed interface BVI{{ pw_id }}
+   !
+  !
+!
+interface BVI{{ pw_id }}
+ description {{ customer_name }}-{{ service_instance_id }}
+ ipv4 address {{ irb_ipaddr }}/{{ irb_mask }}
+{%- if irb_ipv6addr and irb_ipv6mask %}
+ ipv6 address {{ irb_ipv6addr }}/{{ irb_ipv6mask }}
+{%- endif %}
+ flow ipv4 monitor TRAFipMonitorIPv4 sampler TRAFipSample ingress
+ flow ipv6 monitor TRAFipMonitorIPv6 sampler TRAFipSample ingress

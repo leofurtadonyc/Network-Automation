@@ -1,0 +1,22 @@
+{# Policy Template for a Juniper MX L2VPN Routing Instance IRB towards a Cisco ASR 920 device #}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} instance-type vpls
+{%- if vlan_id and vlan_id_outer %}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-tags inner {{ vlan_id }}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-tags outer {{ vlan_id_outer }}
+{%- endif %}
+{%- if vlan_id and not vlan_id_outer %}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-tags {{ vlan_id }}
+{%- endif %}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} routing-interface irb.{{ pw_id }}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls encapsulation-type ethernet-vlan
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls control-word
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls no-tunnel-services
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls vpls-id {{ pw_id }}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls mtu 9000
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls neighbor {{ access_address }}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls connectivity-type irb
+set interfaces irb unit {{ pw_id }} description {{ customer_name }}-{{ service_instance_id }}
+set interfaces irb unit {{ pw_id }} family inet sampling input
+set interfaces irb unit {{ pw_id }} family inet address {{ irb_ipaddr }}/{{ irb_mask }}
+set interfaces irb unit {{ pw_id }} family inet6 sampling input
+set interfaces irb unit {{ pw_id }} family inet6 address {{ irb_ipv6addr }}/{{ irb_ipv6mask }}
