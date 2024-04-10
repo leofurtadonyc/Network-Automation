@@ -119,10 +119,6 @@ def main():
     else:
         print(f"Unsupported Access device type: {access_device_info['device_type']}")
         return
-    
-    if not pe_device_info:
-        print("Error: Provider Edge device information is missing or incorrect.")
-        return
 
     if pe_device_info['device_type'] == 'cisco_xr' and args.service_type == 'p2p':
         pe_template_name = "p2p_cisco_xr_to_generic.j2"
