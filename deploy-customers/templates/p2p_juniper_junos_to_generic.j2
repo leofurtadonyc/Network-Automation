@@ -17,15 +17,15 @@ set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vp
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls connectivity-type irb
 set interfaces irb unit {{ pw_id }} description {{ customer_name }}-{{ service_instance_id }}
 set interfaces irb unit {{ pw_id }} family inet sampling input
-set interfaces irb unit {{ pw_id }} family inet address {{ irb_ipaddr }}{{ irb_mask }}
+set interfaces irb unit {{ pw_id }} family inet address {{ irb_ipaddr }}
 set interfaces irb unit {{ pw_id }} family inet6 sampling input
-set interfaces irb unit {{ pw_id }} family inet6 address {{ irb_ipv6addr }}{{ irb_ipv6mask }}
+set interfaces irb unit {{ pw_id }} family inet6 address {{ irb_ipv6addr }}
 {%- if ipv4_lan %}
 set routing-options static route {{ ipv4_lan }} next-hop {{ ipv4_nexthop }}
 set routing-options static route {{ ipv4_lan }} community 65000:10000
 set routing-options static route {{ ipv4_lan }} community no-export
 {%- endif %}
-{%- if ipv6_lan %}
+{%- if irb_ipv6addr and ipv6_lan %}
 set routing-options rib inet6.0 static route {{ ipv6_lan }} next-hop {{ ipv6_nexthop }}
 set routing-options rib inet6.0 static route {{ ipv6_lan }} community 65000:11000
 set routing-options rib inet6.0 static route {{ ipv6_lan }} community no-export

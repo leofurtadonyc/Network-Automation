@@ -1,28 +1,23 @@
 
-l2vpn
- bridge group INTERNET-CORPORATE-CUSTOMERS
-  bridge-domain LEONARDOFURTADO-20
-   mtu 9000
-   storm-control unknown-unicast pps 1000
-   storm-control multicast pps 500
-   storm-control broadcast pps 500
-   neighbor 10.2.0.1 pw-id 20
-   !
-   routed interface BVI20
-   !
-  !
-!
-interface BVI20
- description LEONARDOFURTADO-20
- ipv4 address 192.88.99.0/30
- ipv6 address 2001:db8:1234:1234::/127
- flow ipv4 monitor TRAFipMonitorIPv4 sampler TRAFipSample ingress
- flow ipv6 monitor TRAFipMonitorIPv6 sampler TRAFipSample ingress
-!
-router static
- address-family ipv4 unicast
-  172.16.0.0/16 192.88.99.2 tag 1000 description LEONARDOFURTADO-20
-!
-router static
- address-family ipv6 unicast
-  2001:db8:2222::/48 2001:db8:1234:1234::2 tag 1000 description LEONARDOFURTADO-20
+set routing-instances LEONARDOFURTADO-20 instance-type vpls
+set routing-instances LEONARDOFURTADO-20 vlan-tags inner 20
+set routing-instances LEONARDOFURTADO-20 vlan-tags outer 1000
+set routing-instances LEONARDOFURTADO-20 routing-interface irb.20
+set routing-instances LEONARDOFURTADO-20 protocols vpls encapsulation-type ethernet-vlan
+set routing-instances LEONARDOFURTADO-20 protocols vpls control-word
+set routing-instances LEONARDOFURTADO-20 protocols vpls no-tunnel-services
+set routing-instances LEONARDOFURTADO-20 protocols vpls vpls-id 20
+set routing-instances LEONARDOFURTADO-20 protocols vpls mtu 9000
+set routing-instances LEONARDOFURTADO-20 protocols vpls neighbor 10.2.0.1
+set routing-instances LEONARDOFURTADO-20 protocols vpls connectivity-type irb
+set interfaces irb unit 20 description LEONARDOFURTADO-20
+set interfaces irb unit 20 family inet sampling input
+set interfaces irb unit 20 family inet address 192.88.99.0/30
+set interfaces irb unit 20 family inet6 sampling input
+set interfaces irb unit 20 family inet6 address 2001:db8:1234:1234::/127
+set routing-options static route 172.16.0.0/16 next-hop 192.88.99.2
+set routing-options static route 172.16.0.0/16 community 65000:10000
+set routing-options static route 172.16.0.0/16 community no-export
+set routing-options rib inet6.0 static route 2001:db8:2222::/48 next-hop 2001:db8:1234:1234::2
+set routing-options rib inet6.0 static route 2001:db8:2222::/48 community 65000:11000
+set routing-options rib inet6.0 static route 2001:db8:2222::/48 community no-export
