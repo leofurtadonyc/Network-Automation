@@ -108,6 +108,14 @@ def main():
         access_template_name = "p2p_cisco_xe_to_generic.j2"
     elif access_device_info['device_type'] == 'cisco_xe' and args.service_type == 'p2mp':
         access_template_name = "p2mp_cisco_xe_to_generic.j2"
+    elif access_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2p':
+        access_template_name = "p2p_huawei_vrp_to_generic.j2"
+    elif access_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2mp':
+        access_template_name = "p2mp_huawei_vrp_to_generic.j2"
+    elif access_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2p':
+        access_template_name = "p2p_huawei_vrp_xpl_to_generic.j2"
+    elif access_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2mp':
+        access_template_name = "p2mp_huawei_vrp_xpl_to_generic.j2"
     else:
         print(f"Unsupported Access device type: {access_device_info['device_type']}")
         return
@@ -118,12 +126,20 @@ def main():
 
     if pe_device_info['device_type'] == 'cisco_xr' and args.service_type == 'p2p':
         pe_template_name = "p2p_cisco_xr_to_generic.j2"
-    elif pe_device_info['device_type'] == 'juniper_junos' and args.service_type == 'p2p':
-        pe_template_name = "p2p_juniper_junos_to_generic.j2"
     elif pe_device_info['device_type'] == 'cisco_xr' and args.service_type == 'p2mp':
         pe_template_name = "p2mp_cisco_xr_to_generic.j2"
+    elif pe_device_info['device_type'] == 'juniper_junos' and args.service_type == 'p2p':
+        pe_template_name = "p2p_juniper_junos_to_generic.j2"
     elif pe_device_info['device_type'] == 'juniper_junos' and args.service_type == 'p2mp':
         pe_template_name = "p2mp_juniper_junos_to_generic.j2"
+    elif pe_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2p':
+        pe_template_name = "p2p_huawei_vrp_to_generic.j2"
+    elif pe_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2mp':
+        pe_template_name = "p2mp_huawei_vrp_to_generic.j2"
+    elif pe_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2p':
+        pe_template_name = "p2p_huawei_vrp_xpl_to_generic.j2"
+    elif pe_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2mp':
+        pe_template_name = "p2mp_huawei_vrp_xpl_to_generic.j2"
     else:
         print(f"Unsupported PE device type: {pe_device_info['device_type']}")
         return
