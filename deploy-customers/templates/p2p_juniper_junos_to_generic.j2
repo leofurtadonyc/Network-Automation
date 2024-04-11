@@ -15,11 +15,17 @@ set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vp
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls mtu 9000
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls neighbor {{ access_address }}
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls connectivity-type irb
+{%- if irb_ipaddr %}
 set interfaces irb unit {{ pw_id }} description {{ customer_name }}-{{ service_instance_id }}
-set interfaces irb unit {{ pw_id }} family inet sampling input
 set interfaces irb unit {{ pw_id }} family inet address {{ irb_ipaddr }}
-set interfaces irb unit {{ pw_id }} family inet6 sampling input
+set interfaces irb unit {{ pw_id }} family inet rpf-check
+set interfaces irb unit {{ pw_id }} family inet sampling input
+{%- endif %}
+{%- if irb_ipv6addr %}
 set interfaces irb unit {{ pw_id }} family inet6 address {{ irb_ipv6addr }}
+set interfaces irb unit {{ pw_id }} family inet6 rpf-check
+set interfaces irb unit {{ pw_id }} family inet6 sampling input
+{%- endif %}
 {%- if ipv4_lan %}
 set routing-options static route {{ ipv4_lan }} next-hop {{ ipv4_nexthop }}
 set routing-options static route {{ ipv4_lan }} community 65000:10000

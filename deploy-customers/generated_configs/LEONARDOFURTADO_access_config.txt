@@ -3,13 +3,14 @@ interface tengigabitethernet0/0/24
  service instance 20 ethernet
   description LEONARDOFURTADO-20
   encapsulation dot1q 1000 second-dot1q 20
-  service-policy input 200
-  service-policy output 200
+  rewrite ingress tag pop 1 symmetric
+  service-policy input 500
+  service-policy output 500
 
 l2vpn vfi context LEONARDOFURTADO-20 
  vpn id 20
  mtu 9000
- member 10.2.0.201 encapsulation mpls
+ member 10.2.0.200 encapsulation mpls
 
 bridge-domain 20 
  member tengigabitethernet0/0/24 service-instance 20
