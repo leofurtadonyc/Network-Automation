@@ -113,7 +113,7 @@ def main():
 
     # Fetch and print data from AS Rank
     asn_data_asrank = fetch_asn_data_from_asrank(args.asn)
-    print("\nDetails from AS Rank (Caida):")
+    print("\nDetails from AS Rank (CAIDA):")
     print_asrank_results(asn_data_asrank)
 
 if __name__ == "__main__":

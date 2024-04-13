@@ -50,7 +50,8 @@ def main():
     if asn_data.get('info_unicast', False):
         supported_protocols.append("IPv4")
 
-    print("\nDetails of ASN in PeeringDB:\n")
+    print("\nDetails of ASN in PeeringDB:")
+    print("----------------------------\n")
     print(f"Organization: {org_data.get('name', 'N/A')}")
     print(f"Company Website: {asn_data.get('website', 'N/A')}")
     print(f"ASN: {asn_str}")

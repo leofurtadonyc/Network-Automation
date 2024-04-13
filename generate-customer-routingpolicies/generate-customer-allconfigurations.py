@@ -25,12 +25,12 @@ def main():
 
     # List of scripts to run and their corresponding arguments
     scripts = [
-        ('get-as-set.py', [str(args.asn)]),  # Only the ASN for the first script
+        ('get-as-set.py', [str(args.asn)]),
+        ('get-as-rank.py', [str(args.asn)]),
         ('generate-customer-prefixes.py', [str(args.asn), args.as_set, args.customer_name]),
         ('generate-customer-routingpolicies.py', [str(args.asn), args.as_set, args.customer_name])
     ]
 
-    # Running scripts in sequence
     for script_path, script_args in scripts:
         run_script(script_path, script_args)
 
