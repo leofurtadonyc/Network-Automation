@@ -1,7 +1,9 @@
 # Network-Automation
 This is a set of Python script utilities designed for network automation. They encompass simple yet useful tasks, providing an avenue for learning and experimenting with network automation using Python.
 
-To prevent interference with your Python environment, ensure that you use it within a Python virtual environment. You can create one using the 'python3 -m venv name_environment' command, then activate it with 'source name_environment/bin/activate'. Alternatively, you may use Pipenv, Poetry, Conda, or any other tool you choose. Easy steps (on a Mac computer):
+To prevent interference with your Python environment, ensure that you use it within a Python virtual environment. You can create one using the 'python3 -m venv name_environment' command, then activate it with 'source name_environment/bin/activate'. Alternatively, you may use Pipenv, Poetry, Conda, or any other tool you choose. 
+
+Easy steps (on a Mac computer):
 
 1. mkdir sandbox
 2. cd sandbox
@@ -10,5 +12,7 @@ To prevent interference with your Python environment, ensure that you use it wit
 5. git clone https://github.com/leofurtadonyc/Network-Automation.git
 7. pip3 install --upgrade pip
 8. pip3 install -r Network-Automation/requirements.txt
+
+Check the Wiki pages for detailed instructions and use cases.
 
 Feel free to reach out to me with any suggestions, tips, code reviews, or other input you might have!
