@@ -7,7 +7,8 @@ To prevent interference with your Python environment, ensure that you use it wit
 2. cd sandbox
 3. python3 -m venv network-automation-env
 4. source network-automation-env/bin/activate
-5. pip3 install --upgrade pip
-6. pip3 install -r requirements.txt
+5. git clone https://github.com/leofurtadonyc/Network-Automation.git
+7. pip3 install --upgrade pip
+8. pip3 install -r Network-Automation/requirements.txt
 
 Feel free to reach out to me with any suggestions, tips, code reviews, or other input you might have!
