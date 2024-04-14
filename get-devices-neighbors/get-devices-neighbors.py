@@ -1,5 +1,6 @@
-#This is a simple script that captures structured data, such as LLDP neighbors, OSPF adjacencies, BGP sessions, and ARP tables from network devices in a lab topology in EVE-NG.
-#Run this directly from the EVE-NG host. This allows you to connect directly using inband IP addresses, making it easier.
+# This is a simple script that captures structured data, such as LLDP neighbors, OSPF adjacencies, BGP sessions, and ARP tables from network devices in a lab topology in EVE-NG.
+# Run this directly from the EVE-NG host. This allows you to connect directly using inband IP addresses, making it easier.
+# https://github.com/leofurtadonyc/Network-Automation/wiki
 import os
 import datetime
 import time

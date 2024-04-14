@@ -1,9 +1,9 @@
+# https://github.com/leofurtadonyc/Network-Automation/wiki
 import argparse
 import requests
 import sys
 from tabulate import tabulate
 
-# Constants for API Endpoints
 PEERINGDB_API = "https://peeringdb.com/api"
 ASRANK_API = "https://api.asrank.caida.org/v2/graphql"
 

@@ -1,4 +1,4 @@
-#@lfurtado
+# https://github.com/leofurtadonyc/Network-Automation/wiki
 import argparse
 import requests
 import json

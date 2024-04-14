@@ -1,4 +1,5 @@
 # This script is designed to generate configurations for network devices, catering to a range of customer service provisioning requirements.
+# https://github.com/leofurtadonyc/Network-Automation/wiki
 import os
 import argparse
 import time

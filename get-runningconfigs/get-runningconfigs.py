@@ -1,3 +1,4 @@
+# https://github.com/leofurtadonyc/Network-Automation/wiki
 import argparse
 import yaml
 import logging
@@ -8,29 +9,23 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from netmiko import ConnectHandler, NetmikoTimeoutException, NetmikoAuthenticationException
 import getpass
 
-# File path for the debug log file
 log_file = 'netmiko.log'
 
-# Check if the debug log file already exists and delete it if it does
 if os.path.exists(log_file):
     os.remove(log_file)
 
 logging.basicConfig(filename='netmiko.log', level=logging.DEBUG)
 logger = logging.getLogger("netmiko")
 
-# Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Lists to store report data
 successful_devices = []
 failed_devices = []
 
-# Function to read YAML file
 def read_yaml(file):
     with open(file, 'r') as stream:
         return yaml.safe_load(stream)
 
-# Function to retrieve config based on device type
 def retrieve_config(device_details, username, password):
     try:
         connection = ConnectHandler(
@@ -57,7 +52,6 @@ def retrieve_config(device_details, username, password):
             logging.error(f"Unsupported device type {device_details['device_type']}")
             return
 
-        # Execute the appropriate command based on the device type
         if device_details['device_type'] in ['cisco_ios', 'cisco_xe', 'cisco_xr']:
             command = "show running-config"
         elif device_details['device_type'] == 'juniper_junos':
@@ -70,7 +64,6 @@ def retrieve_config(device_details, username, password):
         print("Accessing and collecting running configurations from device list, please wait...")
         running_config = connection.send_command(command, expect_string=expect_string, delay_factor=20, max_loops=3000)
 
-        # Save running-config of each device to a separate file
         hostname = device_details.get('hostname', None)
         if hostname:
             date_today = datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
@@ -88,7 +81,6 @@ def retrieve_config(device_details, username, password):
         if 'connection' in locals():
             connection.disconnect()
 
-# Main function
 def main(file_name, max_workers, ip_address=None):
     username = input("Enter username: ")
     password = getpass.getpass("Enter password: ")
@@ -108,7 +100,6 @@ def main(file_name, max_workers, ip_address=None):
     
     end_time = time.time()
 
-    # Printing Report
     print("\n--- Execution Report ---")
     print(f"\nExecution time: {end_time - start_time} seconds")
     print("\nSuccessful Devices:")
