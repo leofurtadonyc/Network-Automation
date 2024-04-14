@@ -1,0 +1,33 @@
+
+route-policy AS266520:VOOB-IMPORT-IPV4 permit node 1001
+ if-match ip-prefix AS266520:VOOB_IMPORT_IPV4 
+ if-match as-path-filter AS266520:VOOB_ASPATH
+ if-match community-filter COMM-RTBH
+ apply local-preference 10000
+ apply ip-address next-hop 192.0.2.1
+
+route-policy AS266520:VOOB-IMPORT-IPV4 permit node 1002
+ if-match ip-prefix AS266520:VOOB_IMPORT_IPV4 
+ if-match as-path-filter AS266520:VOOB_ASPATH
+ apply local-preference 10000
+ apply comm-filter COMM-CITTA-RESTRITO
+ apply comm-filter COMM-CLIENTES-TRANSITO-ALL-v4
+
+route-policy AS266520:VOOB-IMPORT-IPV4 deny node 9999
+
+
+route-policy AS266520:VOOB-IMPORT-IPV6 permit node 1001
+ if-match ipv6 address prefix-list AS266520:VOOB_IMPORT_IPV6 
+ if-match as-path-filter AS266520:VOOB_ASPATH
+ if-match community-filter COMM-RTBH
+ apply local-preference 10000
+ apply ipv6 next-hop 100::1
+
+route-policy AS266520:VOOB-IMPORT-IPV6 permit node 1002
+ if-match ipv6 address prefix-list AS266520:VOOB_IMPORT_IPV6 
+ if-match as-path-filter AS266520:VOOB_ASPATH
+ apply local-preference 10000
+ apply comm-filter COMM-CITTA-RESTRITO
+ apply comm-filter COMM-CLIENTES-TRANSITO-ALL-v6
+
+route-policy AS266520:VOOB-IMPORT-IPV6 deny node 9999

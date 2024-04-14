@@ -1,0 +1,25 @@
+
+route-policy AS266520:VOOB-IMPORT-IPV4
+  if as-path in AS266520:VOOB_ASPATH and destination in AS266520:VOOB_IMPORT_IPV4 and community
+ matches-any COMM-RTBH then
+    set local-preference 10000
+    set next-hop discard
+  endif
+  if as-path in AS266520:VOOB_ASPATH and destination in AS266520:VOOB_IMPORT_IPV4 then
+    set local-preference 10000
+    delete community in COMM-CITTA-RESTRITO
+    set community COMM-CLIENTES-TRANSITO-ALL-v4 additive
+  endif
+
+
+route-policy AS266520:VOOB-IMPORT-IPV6
+  if as-path in AS266520:VOOB_ASPATH and destination in AS266520:VOOB_IMPORT_IPV6 and community
+ matches-any COMM-RTBH then
+    set local-preference 10000
+    set next-hop discard
+  endif
+  if as-path in AS266520:VOOB_ASPATH and destination in AS266520:VOOB_IMPORT_IPV6 then
+    set local-preference 10000
+    delete community in COMM-CITTA-RESTRITO
+    set community COMM-CLIENTES-TRANSITO-ALL-v6 additive
+  endif

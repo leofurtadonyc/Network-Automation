@@ -1,0 +1,29 @@
+
+route-map AS266520:VOOB-IMPORT-IPV4 permit 10
+ match as-path 500
+ match community COMM-RTBH
+ match ip address prefix-list AS266520:VOOB_IMPORT_IPV4
+ set local-preference 10000
+ set ip next-hop 192.0.2.1
+
+route-map AS266520:VOOB-IMPORT-IPV4 permit 20
+ match as-path 500
+ match ip address prefix-list AS266520:VOOB_IMPORT_IPV4
+ set local-preference 10000
+ set comm-list COMM-CITTA-RESTRITO delete  
+ set community 27720:10000 additive
+
+
+route-map AS266520:VOOB-IMPORT-IPV6 permit 10
+ match as-path 500
+ match community COMM-RTBH
+ match ipv6 address prefix-list AS266520:VOOB_IMPORT_IPV6
+ set local-preference 10000
+ set ipv6 next-hop 100::1
+
+route-map AS266520:VOOB-IMPORT-IPV6 permit 20
+ match as-path 500
+ match ipv6 address prefix-list AS266520:VOOB_IMPORT_IPV6
+ set local-preference 10000
+ set comm-list COMM-CITTA-RESTRITO delete  
+ set community 27720:11000 additive

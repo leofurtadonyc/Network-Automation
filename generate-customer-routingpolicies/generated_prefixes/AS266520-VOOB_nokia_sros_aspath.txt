@@ -1,0 +1,11 @@
+configure router policy-options
+begin
+no as-path-group "AS266520:VOOB_ASPATH"
+as-path-group "AS266520:VOOB_ASPATH"
+  entry 1 expression "266520+"
+  entry 2 expression "266520.*[28590 52624 262492 263275 263620 263873 264466 264578]"
+  entry 3 expression "266520.*[265197 266239 266335 267102 267209 267979 267991 268093]"
+  entry 4 expression "266520.*[268473 268618 268693 268930 268994 270706 270758 270836]"
+  entry 5 expression "266520.*[270984 271118 271230 271339 272167 272499 272597 272637]"
+exit
+commit
