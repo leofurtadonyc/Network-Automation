@@ -12,8 +12,8 @@ set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT from p
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT from as-path-group AS266520:VOOB_ASPATH
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT from route-filter-list AS266520:VOOB_IMPORT_IPV4
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT then local-preference 10000
-set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT then community delete COMM-CITTA-RESTRITO
-set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT then community add COMM-CLIENTES-TRANSITO-ALL-v4
+set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT then community delete COMM-RESTRICTED
+set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT then community add COMM-TRANSIT-CUSTOMERS-v4
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term ACCEPT then accept
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV4 term 999 then reject
 
@@ -30,7 +30,7 @@ set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT from p
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT from as-path-group AS266520:VOOB_ASPATH
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT from route-filter-list AS266520:VOOB_IMPORT_IPV4
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT then local-preference 10000
-set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT then community delete COMM-CITTA-RESTRITO
-set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT then community add COMM-CLIENTES-TRANSITO-ALL-v6
+set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT then community delete COMM-RESTRICTED
+set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT then community add COMM-TRANSIT-CUSTOMERS-v6
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term ACCEPT then accept
 set policy-options policy-statement AS266520:VOOB-IMPORT-IPV6 term 999 then reject

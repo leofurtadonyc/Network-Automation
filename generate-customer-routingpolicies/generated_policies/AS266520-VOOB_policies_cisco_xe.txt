@@ -10,8 +10,8 @@ route-map AS266520:VOOB-IMPORT-IPV4 permit 20
  match as-path 500
  match ip address prefix-list AS266520:VOOB_IMPORT_IPV4
  set local-preference 10000
- set comm-list COMM-CITTA-RESTRITO delete  
- set community 27720:10000 additive
+ set comm-list COMM-RESTRICTED delete  
+ set community 65000:10000 additive
 
 
 route-map AS266520:VOOB-IMPORT-IPV6 permit 10
@@ -25,5 +25,5 @@ route-map AS266520:VOOB-IMPORT-IPV6 permit 20
  match as-path 500
  match ipv6 address prefix-list AS266520:VOOB_IMPORT_IPV6
  set local-preference 10000
- set comm-list COMM-CITTA-RESTRITO delete  
- set community 27720:11000 additive
+ set comm-list COMM-RESTRICTED delete  
+ set community 65000:11000 additive

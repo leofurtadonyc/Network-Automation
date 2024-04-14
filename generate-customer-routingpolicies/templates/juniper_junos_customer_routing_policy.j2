@@ -12,8 +12,8 @@ set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT from prot
 set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT from as-path-group {{ as_path_group_name }}
 set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT from route-filter-list {{ route_filter_list_ipv4_name }}
 set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then local-preference 10000
-set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then community delete COMM-CITTA-RESTRITO
-set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then community add COMM-CLIENTES-TRANSITO-ALL-v4
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then community delete COMM-RESTRICTED
+set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then community add COMM-TRANSIT-CUSTOMERS-v4
 set policy-options policy-statement {{ policy_name_ipv4 }} term ACCEPT then accept
 set policy-options policy-statement {{ policy_name_ipv4 }} term 999 then reject
 
@@ -30,7 +30,7 @@ set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT from prot
 set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT from as-path-group {{ as_path_group_name }}
 set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT from route-filter-list {{ route_filter_list_ipv4_name }}
 set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then local-preference 10000
-set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then community delete COMM-CITTA-RESTRITO
-set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then community add COMM-CLIENTES-TRANSITO-ALL-v6
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then community delete COMM-RESTRICTED
+set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then community add COMM-TRANSIT-CUSTOMERS-v6
 set policy-options policy-statement {{ policy_name_ipv6 }} term ACCEPT then accept
 set policy-options policy-statement {{ policy_name_ipv6 }} term 999 then reject

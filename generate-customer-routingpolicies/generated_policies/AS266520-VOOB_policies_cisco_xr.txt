@@ -7,8 +7,8 @@ route-policy AS266520:VOOB-IMPORT-IPV4
   endif
   if as-path in AS266520:VOOB_ASPATH and destination in AS266520:VOOB_IMPORT_IPV4 then
     set local-preference 10000
-    delete community in COMM-CITTA-RESTRITO
-    set community COMM-CLIENTES-TRANSITO-ALL-v4 additive
+    delete community in COMM-RESTRICTED
+    set community COMM-TRANSIT-CUSTOMERS-v4 additive
   endif
 
 
@@ -20,6 +20,6 @@ route-policy AS266520:VOOB-IMPORT-IPV6
   endif
   if as-path in AS266520:VOOB_ASPATH and destination in AS266520:VOOB_IMPORT_IPV6 then
     set local-preference 10000
-    delete community in COMM-CITTA-RESTRITO
-    set community COMM-CLIENTES-TRANSITO-ALL-v6 additive
+    delete community in COMM-RESTRICTED
+    set community COMM-TRANSIT-CUSTOMERS-v6 additive
   endif

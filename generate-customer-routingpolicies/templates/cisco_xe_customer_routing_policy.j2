@@ -10,8 +10,8 @@ route-map {{ policy_name_ipv4 }} permit 20
  match as-path 500
  match ip address prefix-list {{ prefix_list_ipv4_name }}
  set local-preference 10000
- set comm-list COMM-CITTA-RESTRITO delete  
- set community 27720:10000 additive
+ set comm-list COMM-RESTRICTED delete  
+ set community 65000:10000 additive
 
 {# Policy Template for Cisco IOS XE IPv6 Routing Policy #}
 route-map {{ policy_name_ipv6 }} permit 10
@@ -25,5 +25,5 @@ route-map {{ policy_name_ipv6 }} permit 20
  match as-path 500
  match ipv6 address prefix-list {{ prefix_list_ipv6_name }}
  set local-preference 10000
- set comm-list COMM-CITTA-RESTRITO delete  
- set community 27720:11000 additive
+ set comm-list COMM-RESTRICTED delete  
+ set community 65000:11000 additive

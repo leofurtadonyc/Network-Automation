@@ -7,8 +7,8 @@ route-policy {{ policy_name_ipv4 }}
   endif
   if as-path in {{ as_path_set_name }} and destination in {{ prefix_set_ipv4_name }} then
     set local-preference 10000
-    delete community in COMM-CITTA-RESTRITO
-    set community COMM-CLIENTES-TRANSITO-ALL-v4 additive
+    delete community in COMM-RESTRICTED
+    set community COMM-TRANSIT-CUSTOMERS-v4 additive
   endif
 
 {# Policy Template for Cisco IOS XR IPv6 Routing Policy #}
@@ -20,6 +20,6 @@ route-policy {{ policy_name_ipv6 }}
   endif
   if as-path in {{ as_path_set_name }} and destination in {{ prefix_set_ipv6_name }} then
     set local-preference 10000
-    delete community in COMM-CITTA-RESTRITO
-    set community COMM-CLIENTES-TRANSITO-ALL-v6 additive
+    delete community in COMM-RESTRICTED
+    set community COMM-TRANSIT-CUSTOMERS-v6 additive
   endif
