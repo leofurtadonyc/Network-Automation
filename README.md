@@ -21,6 +21,8 @@ On Windows:
 5. pip install --upgrade pip (if needed)
 6. pip install -r .\Network-Automation\requirements.txt
 
+While a requirements.txt file for managing Python dependencies has been included, there may be issues depending on your operating system. Non-Python dependencies also exist, so ensure BGPq3 and Whois are installed if your computer doesn't already have them.
+
 Check the Wiki pages for detailed instructions and use cases.
 
 Feel free to reach out to me with any suggestions, tips, code reviews, or other input you might have!
