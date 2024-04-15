@@ -6,7 +6,7 @@ def run_script(script_path, args):
     """This script runs all the other necessary scripts to build the customer's configurations."""
     """Run a script using Python's subprocess module with additional arguments."""
     try:
-        command = ['python3', script_path] + args
+        command = ['python', script_path] + args
         result = subprocess.run(command, check=True, text=True, capture_output=True)
         print(f"Output from {script_path}:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
