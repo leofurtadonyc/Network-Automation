@@ -1,3 +1,5 @@
+# This script is a slight modification of the original asrank-download-asn.py script; it uses tabulate to display the returned data instead of JSON.
+# https://github.com/leofurtadonyc/Network-Automation/wiki
 import argparse
 import sys
 import requests
