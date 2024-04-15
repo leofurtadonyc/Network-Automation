@@ -9,19 +9,32 @@ import sys
 
 BASE_URL = "https://peeringdb.com/api"
 
-
 def get_asn_data(asn):
     """Get the ASN data from PeeringDB."""
-    response = requests.get(f"{BASE_URL}/net?asn={asn}")
-    data = response.json()
-    return data['data'][0] if data['data'] else None
+    try:
+        response = requests.get(f"{BASE_URL}/net?asn={asn}")
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        data = response.json()
+        if not data['data']:
+            return None
+        return data['data'][0]
+    except requests.RequestException as e:
+        print(f"Error fetching data for ASN {asn}: {e}")
+        sys.exit(1)
 
 
 def get_org_data(org_id):
     """Get the organization's data in PeeringDB."""
-    response = requests.get(f"{BASE_URL}/org/{org_id}")
-    data = response.json()
-    return data['data'][0] if data['data'] else None
+    try:
+        response = requests.get(f"{BASE_URL}/org/{org_id}")
+        response.raise_for_status()
+        data = response.json()
+        if not data['data']:
+            return None
+        return data['data'][0]
+    except requests.RequestException as e:
+        print(f"Error fetching organization data for Org ID {org_id}: {e}")
+        sys.exit(1)
 
 
 def main():
@@ -33,10 +46,13 @@ def main():
     asn_data = get_asn_data(args.asn)
 
     if not asn_data:
-        print(f"The ASN {asn_str} was not found in PeeringDB.")
+        print(f"No data found for ASN {asn_str} in PeeringDB.")
         sys.exit(1)
 
     org_data = get_org_data(asn_data['org_id'])
+    if not org_data:
+        print(f"Organization data not found for ASN {asn_str}.")
+        sys.exit(1)
 
     network_type_mapping = {
         "Content": "Content",
@@ -58,9 +74,7 @@ def main():
     print(f"ASN: {asn_str}")
     print(f"IRR as-set/route-set: {asn_data.get('irr_as_set', 'N/A')}")
     if not asn_data.get('irr_as_set'):
-        print("\nThe ASN does not have an AS-SET registered in PeeringDB and therefore, "
-              "this task cannot be completed. The prefix validation will have to be done "
-              "manually. Aborting the operation.")
+        print("\nNo AS-SET registered for this ASN in PeeringDB; manual prefix validation required.")
         sys.exit(1)
     print(f"Route Server URL: {asn_data.get('route_server', 'N/A')}")
     print(f"Looking Glass URL: {asn_data.get('looking_glass', 'N/A')}")
@@ -70,7 +84,6 @@ def main():
     print(f"Geographic Scope: {asn_data.get('info_scope', 'N/A').capitalize() if asn_data.get('info_scope') else 'N/A'}")
     print(f"Protocols Supported: {' & '.join(supported_protocols)}")
     print(f"Last Updated: {asn_data.get('updated', 'N/A')}")
-
 
 if __name__ == "__main__":
     main()
