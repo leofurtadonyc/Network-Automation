@@ -10,7 +10,7 @@ Easy steps (on a Mac computer):
 3. python3 -m venv network-automation-env
 4. source network-automation-env/bin/activate
 5. git clone https://github.com/leofurtadonyc/Network-Automation.git
-7. pip3 install --upgrade pip
+7. pip3 install --upgrade pip (if needed)
 8. pip3 install -r Network-Automation/requirements.txt
 
 On Windows:
@@ -18,8 +18,8 @@ On Windows:
 2. python -m venv network-automation-env
 3. .\network-automation-env\Scripts\activate
 4. git clone https://github.com/leofurtadonyc/Network-Automation.git (you may need Git. Tip: winget install --id Git.Git -e --source winget)
-5. pip install --upgrade pip
-6. pip install -r Network-Automation/requirements.txt
+5. pip install --upgrade pip (if needed)
+6. pip install -r .\Network-Automation\requirements.txt
 
 Check the Wiki pages for detailed instructions and use cases.
 
