@@ -5,7 +5,7 @@ import json
 import subprocess
 
 def get_peeringdb_data(asn):
-    # Check the ASN details on PeeringDB
+    """Check the ASN details on PeeringDB"""
     url = f"https://peeringdb.com/api/net?asn={asn}"
     response = requests.get(url)
     data = response.json()
@@ -16,8 +16,8 @@ def get_peeringdb_data(asn):
         print(f"API Response: {data}")
         return None
 
-def get_prefixes_from_bgpq4(as_set, ip_version):
-    # Obtain the prefixes using bgpq3
+def get_prefixes_from_bgpq3(as_set, ip_version):
+    """Obtain the prefixes using bgpq3"""
     if ip_version == 4:
         cmd = ["bgpq3", "-j", "-4", "-m", "24", "-S", "RADB", as_set]
     elif ip_version == 6:
@@ -29,7 +29,6 @@ def get_prefixes_from_bgpq4(as_set, ip_version):
     except json.JSONDecodeError:
         print("Failed to decode JSON. The command output was:")
         print(result.stdout)
-        # Dealing with errors appropriately - for example, returning an empty list or dict depending on the expected JSON structure
         return {}
 
 def check_as_set_existence(as_set):
@@ -66,13 +65,13 @@ def main(asn):
         return
 
     exists, whois_output = check_as_set_existence(as_set)
-    print(f"Saída do Whois para {as_set}:\n{whois_output}")
+    print(f"\nWhois data for {as_set}:\n{whois_output}")
     if not exists:
         print(f"The reported ASN has a record in PeeringDB and also an AS-SET mentioned in the 'IRR as-set/route-set' field. However, this AS-SET does not exist or was not found in the RADB base. Prefix validation cannot be performed, aborting the task. Please contact the customer for resolution.")
         return
 
     print("\nIPv4 prefixes derived from AS-SET:")
-    ipv4_prefixes = get_prefixes_from_bgpq4(as_set, 4)
+    ipv4_prefixes = get_prefixes_from_bgpq3(as_set, 4)
     if 'NN' in ipv4_prefixes:
         for prefix in ipv4_prefixes['NN']:
             print(prefix['prefix'])
@@ -80,7 +79,7 @@ def main(asn):
         print("No IPv4 prefix found or unexpected JSON structure.")
 
     print("\nIPv6 prefixes derived from the AS-SET:")
-    ipv6_prefixes = get_prefixes_from_bgpq4(as_set, 6)
+    ipv6_prefixes = get_prefixes_from_bgpq3(as_set, 6)
     if 'NN' in ipv6_prefixes:
         for prefix in ipv6_prefixes['NN']:
             print(prefix['prefix'])
