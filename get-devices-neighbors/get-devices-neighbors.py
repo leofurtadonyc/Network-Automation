@@ -73,15 +73,15 @@ for device in devices:
     active_device = driver(device['host'], 'operador', 'Juniper')
     active_device.open()
 
-    # Get LLDP neighbors and print
+    """ Get LLDP neighbors and print """
     lldp_neighbors = active_device.get_lldp_neighbors()
     print_lldp_neighbors(device['name'], lldp_neighbors)
 
-    # Get ARP table and print
+    """ Get ARP table and print """
     arp_table = active_device.get_arp_table()
     print_arp_table(device['name'], arp_table)
 
-    # Get OSPF neighbors and print
+    """ Get OSPF neighbors and print """
     if device['type'] == 'ios':
         ospf_output = active_device.cli(["show ip ospf neighbor"])
         print_ospf_neighbors(device['name'], ospf_output['show ip ospf neighbor'])
@@ -89,13 +89,13 @@ for device in devices:
         ospf_output = active_device.cli(["show ospf neighbor"])
         print_ospf_neighbors(device['name'], ospf_output["show ospf neighbor"])
 
-    # Get BGP neighbors and print
+    """ Get BGP neighbors and print """
     bgp_neighbors = active_device.get_bgp_neighbors()
     print_bgp_neighbors(device['name'], bgp_neighbors)
 
     active_device.close()
 
-# Calculate and print the script execution time
+""" Calculate and print the script execution time """
 end_time = time.time()
 execution_time = round(end_time - start_time, 2)
 
