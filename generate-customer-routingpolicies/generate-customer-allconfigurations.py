@@ -8,26 +8,25 @@ def run_script(script_path, args):
     try:
         command = ['python', script_path] + args
         result = subprocess.run(command, check=True, text=True, capture_output=True)
-        if result.stdout:
-            print(f"Output from {script_path}:\n{result.stdout}")
+        print(f"\nOutput from {script_path}:\n{result.stdout}\n")
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
         print(f"Error running {script_path}: {e}")
-        if e.stdout:
-            print("Output:", e.stdout)
-        if e.stderr:
-            print("Error:", e.stderr)
+        print("Output:", e.stdout.strip() if e.stdout else "No output")
+        print("Error:", e.stderr.strip() if e.stderr else "No error information")
         sys.exit(1)
 
 def get_as_set_from_peeringdb(asn):
     """Retrieve the AS-SET from PeeringDB using the ASN."""
     output = run_script('get-as-set.py', [str(asn)])
+    print(f"PeeringDB output for ASN {asn}: {output}")  # Ensure all output is printed
     if "IRR as-set/route-set:" in output:
         as_set = output.split("IRR as-set/route-set: ")[1].split("\n")[0].strip()
         if as_set == "N/A":
             print("\nNo AS-SET registered for this ASN in PeeringDB; manual prefix validation required.")
             sys.exit(1)
         return as_set
+    print("No AS-SET information found in output.")
     return None
 
 def main():
