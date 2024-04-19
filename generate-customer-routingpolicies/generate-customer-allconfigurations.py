@@ -1,24 +1,39 @@
 # https://github.com/leofurtadonyc/Network-Automation/wiki
 import subprocess
 import argparse
+import sys
 
 def run_script(script_path, args):
-    """This script runs all the other necessary scripts to build the customer's configurations."""
     """Run a script using Python's subprocess module with additional arguments."""
     try:
         command = ['python', script_path] + args
         result = subprocess.run(command, check=True, text=True, capture_output=True)
-        print(f"Output from {script_path}:\n{result.stdout}")
+        if result.stdout:
+            print(f"Output from {script_path}:\n{result.stdout}")
+        return result.stdout.strip()
     except subprocess.CalledProcessError as e:
         print(f"Error running {script_path}: {e}")
         if e.stdout:
             print("Output:", e.stdout)
         if e.stderr:
             print("Error:", e.stderr)
+        sys.exit(1)
+
+def get_as_set_from_peeringdb(asn):
+    """Retrieve the AS-SET from PeeringDB using the ASN."""
+    output = run_script('get-as-set.py', [str(asn)])
+    if "IRR as-set/route-set:" in output:
+        as_set = output.split("IRR as-set/route-set: ")[1].split("\n")[0].strip()
+        if as_set == "N/A":
+            print("\nNo AS-SET registered for this ASN in PeeringDB; manual prefix validation required.")
+            sys.exit(1)
+        return as_set
+    return None
 
 def main():
     parser = argparse.ArgumentParser(
-        description="This script orchestrates the generation of BGP customer service activation configurations. "
+        description="Generate BGP customer service activation configurations. "
+                    "This script orchestrates the generation of BGP customer service activation configurations. "
                     "This automation encompasses your routing policies and BGP session configurations for your customer cone. "
                     "It incorporates some of the best practices recommended by MANRS, such as prefix and AS-Path filtering. "
                     "This script does that by invoking five other scripts in a specific order. "
@@ -30,18 +45,21 @@ def main():
         epilog="Example usage: python3 generate-customer-allconfigurations.py 16509 AS16509:AS-AMAZON AMAZON"
     )
     parser.add_argument("asn", type=int, help="Autonomous System Number (ASN).")
-    parser.add_argument("as_set", type=str, help="AS-SET to use for expanding IP prefixes.")
+    parser.add_argument("--as-set", type=str, default=None, help="Optional: AS-SET to use for expanding IP prefixes. If not provided, will attempt to retrieve from PeeringDB.")
     parser.add_argument("customer_name", type=str, help="Customer name for file and prefix naming.")
     args = parser.parse_args()
 
+    if not args.as_set:
+        args.as_set = get_as_set_from_peeringdb(args.asn)
+    
     scripts = [
-        ('get-as-set.py', [str(args.asn)]),
         ('get-whois.py', [str(args.asn), args.as_set]),
         ('get-as-rank.py', [str(args.asn)]),
         ('generate-customer-prefixes.py', [str(args.asn), args.as_set, args.customer_name]),
         ('generate-customer-routingpolicies.py', [str(args.asn), args.as_set, args.customer_name])
     ]
 
+    """ Executing each script in sequence """
     for script_path, script_args in scripts:
         run_script(script_path, script_args)
 

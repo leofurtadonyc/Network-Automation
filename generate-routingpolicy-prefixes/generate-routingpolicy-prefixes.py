@@ -98,9 +98,9 @@ def generate_commands(vendor, as_number, customer_name, prefixes, is_ipv6=False)
         for index, prefix in enumerate(prefixes):
             ip, mask = prefix.split('/')
             if index == last_index:
-                commands.append(f'  {ip} {mask} eq {mask}')  # No comma for the last entry
+                commands.append(f'  {ip} {mask} eq {mask}')  # Ensure there will be no comma for the last entry
             else:
-                commands.append(f'  {ip} {mask} eq {mask},')  # Comma for all but last
+                commands.append(f'  {ip} {mask} eq {mask},')  # Comma for all but last entry
         commands.append('end-list')
 
     elif vendor == 'nokia_sros':
@@ -129,7 +129,6 @@ def run_bgpq3_aspath(asn, as_set, customer_name):
             if result.stderr:
                 print(f"Error output from bgpq3 for {vendor}: {result.stderr}")
             if result.stdout:
-                # Assume the output is directly usable for your purposes
                 commands[vendor] = result.stdout.strip().split('\n')
         except subprocess.CalledProcessError as e:
             print(f"Failed to execute bgpq3 for {vendor}: {e}")
@@ -163,7 +162,6 @@ def main():
     parser.add_argument("customer_name", type=valid_customer_name, help="Customer name for file and prefix naming.")
     args = parser.parse_args()
 
-    # Existing functionality to expand IPv4 and IPv6 sets and generate prefix lists
     ipv4_data = expand_ipv4_as_set(args.as_set)
     ipv6_data = expand_ipv6_as_set(args.as_set)
     ipv4_prefixes = parse_prefixes(ipv4_data) if ipv4_data else []
