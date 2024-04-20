@@ -13,16 +13,18 @@ def load_data_from_file(filename):
         return None
 
 def write_to_file_with_check(filepath, data):
-    """Write data to a file and check that it is not empty."""
+    """Write data to a file, check that it is not empty, and report the file name."""
     if not os.path.exists(os.path.dirname(filepath)):
         os.makedirs(os.path.dirname(filepath))
+
     with open(filepath, 'w') as file:
         file.write(data)
+
     if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-        print("Configuration generated successfully.")
+        print(f"Configuration generated successfully: {filepath}")
     else:
         os.remove(filepath)
-        raise Exception("Error: The configuration file was created but is empty.")
+        raise Exception(f"Error: The configuration file '{filepath}' was created but is empty.")
 
 def generate_policies_juniper_junos(asn, customer_name):
     """Generate routing policies for Juniper devices."""
@@ -123,9 +125,7 @@ def main():
     parser.add_argument("customer_name", type=str, help="Customer name for configuration naming.")
     args = parser.parse_args()
 
-    # List of vendors to generate policies for
     vendors = ['juniper_junos', 'cisco_xe', 'cisco_xr', 'huawei_vrp']
-    #for vendor in vendors:
     generate_policies_juniper_junos(args.asn, args.customer_name)
     generate_policies_cisco_xe(args.asn, args.customer_name)
     generate_policies_cisco_xr(args.asn, args.customer_name)
