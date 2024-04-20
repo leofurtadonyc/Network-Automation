@@ -1,4 +1,24 @@
-# https://github.com/leofurtadonyc/Network-Automation/wiki
+"""
+Module: Generate Customer Routing Policies
+https://github.com/leofurtadonyc/Network-Automation/wiki
+
+This script automates the creation of customer-specific BGP routing policies based on predefined templates and customer input.
+It integrates best practices from MANRS (Mutually Agreed Norms for Routing Security) to enhance network security and efficiency.
+
+The script fetches necessary ASN and AS-SET information using external APIs such as PeeringDB, RADB, and AS Rank, and
+generates routing policies in various router vendor syntaxes using bgpq3.
+
+Outputs:
+- Prefix lists and AS-Path lists are generated and stored in `generated_prefixes/`.
+- Routing policies are customized per customer and vendor requirements and saved in `generated_policies/`.
+- Jinja2 templates are used for the routing policy generation. Ensure to modify them to suit your needs.
+
+Requirements:
+- Python 3.6+
+- External libraries: subprocess, os, time, argparse
+- External tools: bgpq3 for generating prefix lists and AS-Path lists, whois for whois checking.
+"""
+
 import subprocess
 import argparse
 import sys
