@@ -5,7 +5,7 @@ import os
 import time
 
 def run_script(script_path, args):
-    """Run a script using Python's subprocess module with additional arguments."""
+    """Run scripts using Python's subprocess module with additional arguments."""
     try:
         command = ['python', script_path] + args
         result = subprocess.run(command, check=True, text=True, capture_output=True)
@@ -76,11 +76,12 @@ def main():
         if script_path == 'get-whois.py':
             as_set_name = extract_as_set_name(stdout)
 
-    # Final report
     print("\n--- Execution Report ---")
     print(f"User: {os.getlogin()}")
     print(f"AS-SET found in PeeringDB: {as_set_found_in_peeringdb}")
     print(f"AS-SET found in RADB: {as_set_name}")
+    if as_set_name == "AS-SET not found":
+        print("\nWARNING: Prefix-lists were NOT generated and as-path lists will deny everything because the customer's AS-SET was not found in RADB.")
     print(f"Total Execution Time: {time.time() - start_time:.2f} seconds")
 
 if __name__ == "__main__":
