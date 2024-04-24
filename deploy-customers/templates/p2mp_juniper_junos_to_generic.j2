@@ -6,7 +6,7 @@ set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-tags in
 set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-tags outer {{ vlan_id_outer }}
 {%- endif %}
 {%- if vlan_id and not vlan_id_outer %}
-set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-tags {{ vlan_id }}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-id {{ vlan_id }}
 {%- endif %}
 set routing-instances {{ customer_name }}-{{ service_instance_id }} routing-interface irb.{{ pw_id }}
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls encapsulation-type ethernet-vlan
