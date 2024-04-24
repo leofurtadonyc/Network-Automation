@@ -50,21 +50,30 @@ def collect_inputs():
     service_type = input("Service Type (p2p or p2mp): ")
     return (customer_name, access_device, access_interface, circuit_id, qos_input, qos_output, vlan_id, vlan_id_outer, pw_id, irb_ipaddr, irb_ipv6addr, ipv4_lan, ipv4_nexthop, ipv6_lan, ipv6_nexthop, pe_device, service_type)
 
-def valid_ip_network(network):
-    """Validate an IP network prefix."""
+def valid_ip_irb(network):
+    """Validate an IP network prefix and return the first usable IP address with the prefix."""
     try:
         network_obj = ipaddress.ip_network(network, strict=False)
-        return str(network_obj)
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"Invalid IP network: {network}")
+        first_usable_ip = next(network_obj.hosts())
+        return f"{first_usable_ip}/{network_obj.prefixlen}"
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(f"Invalid IP network: {network}. Error: {e}")
 
-def valid_ip_address(address):
+def valid_ip_nexthop(address):
     """Validate an IP address."""
     try:
         ip_obj = ipaddress.ip_address(address)
         return str(ip_obj)
     except ValueError:
         raise argparse.ArgumentTypeError(f"Invalid IP address: {address}")
+    
+def valid_ip_lan(network):
+    """Validate an IP network prefix."""
+    try:
+        network_obj = ipaddress.ip_network(network, strict=False)
+        return str(network_obj)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid IP network: {network}")
 
 def main():
     parser = argparse.ArgumentParser(description="Generate service provisioning configurations for network devices.")
@@ -77,12 +86,12 @@ def main():
     parser.add_argument("--vlan-id", type=int, help="VLAN ID (1-4095).")
     parser.add_argument("--vlan-id-outer", type=int, help="Outer VLAN ID (1-4095).")
     parser.add_argument("--pw-id", type=int, help="Pseudowire ID.")
-    parser.add_argument("--irb-ipaddr", type=valid_ip_network, help="IP address for the BVI or IRB PE interface.")
-    parser.add_argument("--irb-ipv6addr", type=valid_ip_network, help="IPv6 address for the BVI or IRB PE interface.")
-    parser.add_argument("--ipv4-lan", type=valid_ip_network, help="Customer IPv4 LAN network. Format prefix/mask.")
-    parser.add_argument("--ipv4-nexthop", type=valid_ip_address, help="IPv4 next-hop address to customer's LAN")
-    parser.add_argument("--ipv6-lan", type=valid_ip_network, help="Customer IPv6 LAN network. Format prefix/mask.")
-    parser.add_argument("--ipv6-nexthop", type=valid_ip_address, help="IPv6 next-hop address to customer's LAN")
+    parser.add_argument("--irb-ipaddr", type=valid_ip_irb, help="IP address for the BVI or IRB PE interface.")
+    parser.add_argument("--irb-ipv6addr", type=valid_ip_irb, help="IPv6 address for the BVI or IRB PE interface.")
+    parser.add_argument("--ipv4-lan", type=valid_ip_lan, help="Customer IPv4 LAN network. Format prefix/mask.")
+    parser.add_argument("--ipv4-nexthop", type=valid_ip_nexthop, help="IPv4 next-hop address to customer's LAN")
+    parser.add_argument("--ipv6-lan", type=valid_ip_lan, help="Customer IPv6 LAN network. Format prefix/mask.")
+    parser.add_argument("--ipv6-nexthop", type=valid_ip_nexthop, help="IPv6 next-hop address to customer's LAN")
     parser.add_argument("--pe-device", type=str, help="Hostname of the Provider Edge device.")
     parser.add_argument("--service-type", choices=['p2p', 'p2mp'], help="Service type: point-to-point or point-to-multipoint.")
     parser.add_argument("--interactive", action='store_true', help="Run the script in interactive mode to gather input from the operator.")
