@@ -13,11 +13,11 @@ set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vp
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls control-word
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls no-tunnel-services
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls vpls-id {{ pw_id }}
-set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls mtu 9000
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls mtu 1500
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls neighbor {{ access_loopback }}
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls connectivity-type irb
 {%- if irb_ipaddr %}
-delete set interfaces irb unit {{ pw_id }}
+delete interfaces irb unit {{ pw_id }}
 set interfaces irb unit {{ pw_id }} description {{ customer_name }}-{{ service_instance_id }}
 set interfaces irb unit {{ pw_id }} family inet address {{ irb_ipaddr }}
 set interfaces irb unit {{ pw_id }} family inet rpf-check
