@@ -3,7 +3,7 @@ l2vpn
  bridge group INTERNET-CORPORATE-CUSTOMERS
   no bridge-domain {{ customer_name }}-{{ service_instance_id }}
   bridge-domain {{ customer_name }}-{{ service_instance_id }}
-   mtu 9000
+   mtu 1500
    storm-control unknown-unicast pps 1000
    storm-control multicast pps 500
    storm-control broadcast pps 500
