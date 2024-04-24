@@ -21,5 +21,5 @@ interface {{ interface_name }}
 no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
 l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
  description {{ customer_name }}-{{ service_instance_id }}
- member {{ pe_address }} {{ pw_id }} encapsulation mpls
+ member {{ pe_loopback }} {{ pw_id }} encapsulation mpls
  member {{ interface_name }} service-instance {{ service_instance_id }}

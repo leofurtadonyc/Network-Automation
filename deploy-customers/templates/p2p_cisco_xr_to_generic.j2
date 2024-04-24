@@ -7,7 +7,7 @@ l2vpn
    storm-control unknown-unicast pps 1000
    storm-control multicast pps 500
    storm-control broadcast pps 500
-   neighbor {{ access_address }} pw-id {{ pw_id }}
+   neighbor {{ access_loopback }} pw-id {{ pw_id }}
    !
    routed interface BVI{{ pw_id }}
    !

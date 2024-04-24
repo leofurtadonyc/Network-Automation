@@ -19,7 +19,7 @@ no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }}
 l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
  vpn id {{ pw_id }}
  mtu 9000
- member {{ pe_address }} encapsulation mpls
+ member {{ pe_loopback }} encapsulation mpls
 
 no bridge-domain {{ service_instance_id }}
 bridge-domain {{ service_instance_id }} 

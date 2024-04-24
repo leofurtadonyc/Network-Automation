@@ -14,7 +14,7 @@ set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vp
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls no-tunnel-services
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls vpls-id {{ pw_id }}
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls mtu 9000
-set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls neighbor {{ access_address }}
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls neighbor {{ access_loopback }}
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls connectivity-type irb
 {%- if irb_ipaddr %}
 delete interfaces irb unit {{ pw_id }}
