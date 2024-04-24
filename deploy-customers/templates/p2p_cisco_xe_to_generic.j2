@@ -1,4 +1,16 @@
 {# Policy Template for a Cisco ASR 920 L2VPN Xconnect towards a Cisco IOS XR device #}
+bridge-domain {{ service_instance_id }}
+ no member {{ interface_name }} service-instance {{ service_instance_id }}
+ no member vfi {{ customer_name }}-{{ service_instance_id }}
+no bridge-domain {{ service_instance_id }}
+no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }}
+l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
+ no member {{ pe_loopback }} {{ pw_id }} encapsulation mpls
+ no member {{ interface_name }} service-instance {{ service_instance_id }}
+no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
+interface {{ interface_name }}
+ no service instance {{ service_instance_id }} ethernet
+
 interface {{ interface_name }}
  service instance {{ service_instance_id }} ethernet
   description {{ customer_name }}-{{ service_instance_id }}
@@ -15,9 +27,9 @@ interface {{ interface_name }}
   rewrite ingress tag pop 1 symmetric
 {%- endif %}
   service-policy input limita_{{ qos_input }}Mb
-  service-policy input limita_{{ qos_output }}Mb
+  service-policy output limita_{{ qos_output }}Mb
 
 l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
  description {{ customer_name }}-{{ service_instance_id }}
- member {{ pe_address }} {{ pw_id }} encapsulation mpls
+ member {{ pe_loopback }} {{ pw_id }} encapsulation mpls
  member {{ interface_name }} service-instance {{ service_instance_id }}

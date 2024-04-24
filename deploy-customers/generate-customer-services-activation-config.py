@@ -10,7 +10,8 @@ from jinja2 import Environment, FileSystemLoader
 def load_yaml(yaml_path):
     """Load data from a YAML file."""
     with open(yaml_path, 'r') as file:
-        return yaml.safe_load(file)
+        data = yaml.safe_load(file)
+        return data['devices']  # Correctly access the nested 'devices' dictionary
 
 def render_template(template_name, context):
     """Render configuration from Jinja2 templates."""
@@ -22,13 +23,9 @@ def write_to_file(directory, filename, data):
     """Write data to a file and ensure the directory exists."""
     base_path = os.path.abspath(directory)
     filepath = os.path.join(base_path, filename)
-
-    if not os.path.exists(os.path.dirname(filepath)):
-        os.makedirs(os.path.dirname(filepath))
-
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, 'w') as file:
         file.write(data)
-
     print(f"Configuration written to {filepath}")
 
 def collect_inputs():
@@ -51,23 +48,32 @@ def collect_inputs():
     ipv6_nexthop = input("IPv6 next-hop address to customer's LAN: ")
     pe_device = input("Provider Edge Device Hostname: ")
     service_type = input("Service Type (p2p or p2mp): ")
-    return (customer_name, access_device, access_interface, circuit_id, qos_input, qos_output, vlan_id, vlan_id_outer, pw_id, irb_ipaddr, irb_ipv6addr, ipv4_lan, ipv4_nexthop, ipv6_nexthop, ipv6_lan, pe_device, service_type)
+    return (customer_name, access_device, access_interface, circuit_id, qos_input, qos_output, vlan_id, vlan_id_outer, pw_id, irb_ipaddr, irb_ipv6addr, ipv4_lan, ipv4_nexthop, ipv6_lan, ipv6_nexthop, pe_device, service_type)
 
-def valid_ip_network(network):
-    """Validate an IP network prefix."""
+def valid_ip_irb(network):
+    """Validate an IP network prefix and return the first usable IP address with the prefix."""
     try:
         network_obj = ipaddress.ip_network(network, strict=False)
-        return str(network_obj)
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"Invalid IP network: {network}")
+        first_usable_ip = next(network_obj.hosts())
+        return f"{first_usable_ip}/{network_obj.prefixlen}"
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(f"Invalid IP network: {network}. Error: {e}")
 
-def valid_ip_address(address):
+def valid_ip_nexthop(address):
     """Validate an IP address."""
     try:
         ip_obj = ipaddress.ip_address(address)
         return str(ip_obj)
     except ValueError:
         raise argparse.ArgumentTypeError(f"Invalid IP address: {address}")
+    
+def valid_ip_lan(network):
+    """Validate an IP network prefix."""
+    try:
+        network_obj = ipaddress.ip_network(network, strict=False)
+        return str(network_obj)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid IP network: {network}")
 
 def main():
     parser = argparse.ArgumentParser(description="Generate service provisioning configurations for network devices.")
@@ -78,14 +84,14 @@ def main():
     parser.add_argument("--qos-input", type=int, help="Input QoS policer in bits.")
     parser.add_argument("--qos-output", type=int, help="Output QoS policer in bits.")
     parser.add_argument("--vlan-id", type=int, help="VLAN ID (1-4095).")
-    parser.add_argument("--vlan-id-outer", type=int, help="VLAN ID (1-4095).")
+    parser.add_argument("--vlan-id-outer", type=int, help="Outer VLAN ID (1-4095).")
     parser.add_argument("--pw-id", type=int, help="Pseudowire ID.")
-    parser.add_argument("--irb-ipaddr", type=valid_ip_network, help="IP address for the BVI or IRB PE interface.")
-    parser.add_argument("--irb-ipv6addr", type=valid_ip_network, help="IPv6 address for the BVI or IRB PE interface.")
-    parser.add_argument("--ipv4-lan", type=valid_ip_network, help="Customer IPv4 LAN network. Format prefix/mask.")
-    parser.add_argument("--ipv4-nexthop", type=valid_ip_address, help="IPv4 next-hop address to customer's LAN")
-    parser.add_argument("--ipv6-lan", type=valid_ip_network, help="Customer IPv6 LAN network. Format prefix/mask.")
-    parser.add_argument("--ipv6-nexthop", type=valid_ip_address, help="IPv6 next-hop address to customer's LAN")
+    parser.add_argument("--irb-ipaddr", type=valid_ip_irb, help="IP address for the BVI or IRB PE interface.")
+    parser.add_argument("--irb-ipv6addr", type=valid_ip_irb, help="IPv6 address for the BVI or IRB PE interface.")
+    parser.add_argument("--ipv4-lan", type=valid_ip_lan, help="Customer IPv4 LAN network. Format prefix/mask.")
+    parser.add_argument("--ipv4-nexthop", type=valid_ip_nexthop, help="IPv4 next-hop address to customer's LAN")
+    parser.add_argument("--ipv6-lan", type=valid_ip_lan, help="Customer IPv6 LAN network. Format prefix/mask.")
+    parser.add_argument("--ipv6-nexthop", type=valid_ip_nexthop, help="IPv6 next-hop address to customer's LAN")
     parser.add_argument("--pe-device", type=str, help="Hostname of the Provider Edge device.")
     parser.add_argument("--service-type", choices=['p2p', 'p2mp'], help="Service type: point-to-point or point-to-multipoint.")
     parser.add_argument("--interactive", action='store_true', help="Run the script in interactive mode to gather input from the operator.")
@@ -98,8 +104,8 @@ def main():
     start_time = time.time()
 
     devices_config = load_yaml('devices/network_devices.yaml')
-    access_device_info = next((device for device in devices_config['devices'] if device['hostname'] == args.access_device), None)
-    pe_device_info = next((device for device in devices_config['devices'] if device['hostname'] == args.pe_device), None)
+    access_device_info = devices_config.get(args.access_device)  # Use .get to avoid KeyError
+    pe_device_info = devices_config.get(args.pe_device)          # Use .get to avoid KeyError
 
     if not access_device_info or not pe_device_info:
         print("Error: Device information is missing or incorrect in the YAML file.")
@@ -161,6 +167,8 @@ def main():
         'ipv6_nexthop': args.ipv6_nexthop,
         'access_address': access_device_info['ip_address'],
         'pe_address': pe_device_info['ip_address'],
+        'access_loopback': access_device_info['loopback'],
+        'pe_loopback': pe_device_info['loopback'],
         'device_type': pe_device_info['device_type']
     }
 
