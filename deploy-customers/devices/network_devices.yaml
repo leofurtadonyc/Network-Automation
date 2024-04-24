@@ -1,16 +1,16 @@
 devices:
-  - ip_address: 10.255.255.1
+  - ip_address: 192.168.255.11
     device_type: 'cisco_xe'
     hostname: 'a-cisco-01'
-  - ip_address: 10.255.255.2
+  - ip_address: 192.168.255.12
     device_type: 'huawei_vrp'
     hostname: 'a-huawei-02'
-  - ip_address: 10.255.255.5
+  - ip_address: 192.168.255.15
     device_type: 'juniper_junos'
     hostname: 'pe-junos-01'
-  - ip_address: 10.255.255.6
+  - ip_address: 192.168.255.16
     device_type: 'cisco_xr'
     hostname: 'pe-cisco-03'
-  - ip_address: 10.255.255.7
+  - ip_address: 192.168.255.17
     device_type: 'huwaei_vrp'
     hostname: 'pe-huwaei_02'
