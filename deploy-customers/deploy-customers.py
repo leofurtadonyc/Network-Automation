@@ -1,122 +1,83 @@
-import paramiko
-import yaml
-import getpass
-import hashlib
-
 # This script is designed to generate configurations for network devices, catering to a range of customer service provisioning requirements.
 # https://github.com/leofurtadonyc/Network-Automation/wiki
+import paramiko
+import yaml
+import bcrypt
+import os
+import argparse
 
+def load_devices(file_path='devices/network_devices.yaml'):
+    with open(file_path, 'r') as file:
+        return yaml.safe_load(file)
 
-def load_device_credentials():
-    with open('usercredentials.sec', 'r') as file:
-        credentials = yaml.safe_load(file)
-    return credentials
-
-def authenticate_user(username, password):
-    credentials = load_device_credentials()
-    if username in credentials and credentials[username] == hashlib.sha256(password.encode()).hexdigest():
-        return True
+def verify_user(username, password, credentials_file='usercredentials.sec'):
+    with open(credentials_file, 'r') as file:
+        for line in file:
+            stored_username, hashed_password = line.strip().split(':')
+            if stored_username == username and bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
+                return True
     return False
 
-def load_network_devices():
-    with open('devices/network_devices.yaml', 'r') as file:
-        devices = yaml.safe_load(file)
-    return devices
+def deploy_config(username, password, customer_name, access_device, pe_device):
+    # Load device configurations and user validation
+    devices = load_devices()
+    if not verify_user(username, password):
+        return "Authentication failed. Check username and password."
 
-def deploy_config(customer_name, access_device, pe_device, username):
-    # Load network devices
-    devices = load_network_devices()
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    # Check if access_device and pe_device exist in devices
-    if access_device not in devices or pe_device not in devices:
-        print("Invalid device name.")
-        return
+    for device_name, device_details in [(access_device, f"{customer_name}_access_config.txt"), (pe_device, f"{customer_name}_pe_config.txt")]:
+        try:
+            device_type = devices[device_name]['device_type']
+            ip_address = devices[device_name]['ip_address']
+            config_file_path = f"generated_configs/{device_details}"
 
-    # Check if username and password are valid
-    password = getpass.getpass("Enter password: ")
-    if not authenticate_user(username, password):
-        print("Authentication failed.")
-        return
+            # Read configuration file
+            with open(config_file_path, 'r') as file:
+                configuration = file.read()
 
-    # Get access device details
-    access_ip = devices[access_device]['ip_address']
-    access_device_type = devices[access_device]['device_type']
+            # Connect to the device
+            ssh_client.connect(ip_address, username=username, password=password)
+            channel = ssh_client.invoke_shell()
 
-    # Get pe device details
-    pe_ip = devices[pe_device]['ip_address']
-    pe_device_type = devices[pe_device]['device_type']
+            # Sending device specific commands
+            if device_type == 'cisco_xe':
+                commands = ['config terminal', configuration, 'end', 'write memory']
+            elif device_type == 'cisco_xr':
+                commands = ['config terminal', configuration, 'commit', 'exit']
+            elif device_type == 'juniper_junos':
+                commands = ['edit', configuration, 'commit and-quit']
+            elif device_type == 'huawei_vrp':
+                commands = ['system-view', configuration, 'return', 'save', 'Y']
+            else:
+                return f"Unsupported device type: {device_type}"
 
-    # Generate config file paths
-    access_config_file = f"generated_configs/{customer_name}_access_config.txt"
-    pe_config_file = f"generated_configs/{customer_name}_pe_config.txt"
+            for command in commands:
+                channel.send(command + '\n')
+                while not channel.recv_ready():  # Wait for the command to be processed
+                    time.sleep(1)
 
-    # Connect to access device
-    access_ssh = paramiko.SSHClient()
-    access_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    access_ssh.connect(access_ip, username=username, password=password)
+            print(f"Configuration deployed successfully on {device_name}")
+        except Exception as e:
+            print(f"Failed to deploy configuration on {device_name}: {e}")
+        finally:
+            ssh_client.close()
 
-    # Deploy access config
-    if access_device_type == 'cisco_xe':
-        access_ssh.exec_command('config terminal')
-        with open(access_config_file, 'r') as file:
-            access_ssh.exec_command(file.read())
-        access_ssh.exec_command('write terminal')
-    elif access_device_type == 'cisco_xr':
-        access_ssh.exec_command('config terminal')
-        with open(access_config_file, 'r') as file:
-            access_ssh.exec_command(file.read())
-        access_ssh.exec_command('commit')
-    elif access_device_type == 'juniper_junos':
-        access_ssh.exec_command('edit')
-        with open(access_config_file, 'r') as file:
-            access_ssh.exec_command(file.read())
-        access_ssh.exec_command('commit and-quit')
-    elif access_device_type == 'huawei_vrp':
-        access_ssh.exec_command('system-view')
-        with open(access_config_file, 'r') as file:
-            access_ssh.exec_command(file.read())
-        access_ssh.exec_command('quit')
-        access_ssh.exec_command('save')
-        access_ssh.exec_command('Y')
+    return "Deployment complete for all devices."
 
-    # Connect to pe device
-    pe_ssh = paramiko.SSHClient()
-    pe_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    pe_ssh.connect(pe_ip, username=username, password=password)
+def main():
+    parser = argparse.ArgumentParser(description="Network Configuration Deployment")
+    parser.add_argument("customer_name", help="Customer name to identify config files")
+    parser.add_argument("access_device", help="Hostname of the access device")
+    parser.add_argument("pe_device", help="Hostname of the PE device")
+    parser.add_argument("username", help="Username for SSH and credential verification")
+    parser.add_argument("password", help="Password for SSH and credential verification")
 
-    # Deploy pe config
-    if pe_device_type == 'cisco_xe':
-        pe_ssh.exec_command('config terminal')
-        with open(pe_config_file, 'r') as file:
-            pe_ssh.exec_command(file.read())
-        pe_ssh.exec_command('write terminal')
-    elif pe_device_type == 'cisco_xr':
-        pe_ssh.exec_command('config terminal')
-        with open(pe_config_file, 'r') as file:
-            pe_ssh.exec_command(file.read())
-        pe_ssh.exec_command('commit')
-    elif pe_device_type == 'juniper_junos':
-        pe_ssh.exec_command('edit')
-        with open(pe_config_file, 'r') as file:
-            pe_ssh.exec_command(file.read())
-        pe_ssh.exec_command('commit and-quit')
-    elif pe_device_type == 'huawei_vrp':
-        pe_ssh.exec_command('system-view')
-        with open(pe_config_file, 'r') as file:
-            pe_ssh.exec_command(file.read())
-        pe_ssh.exec_command('quit')
-        pe_ssh.exec_command('save')
-        pe_ssh.exec_command('Y')
+    args = parser.parse_args()
+    
+    result = deploy_config(args.username, args.password, args.customer_name, args.access_device, args.pe_device)
+    print(result)
 
-    # Close SSH connections
-    access_ssh.close()
-    pe_ssh.close()
-
-# Get user input
-customer_name = input("Enter customer name: ")
-access_device = input("Enter access device hostname: ")
-pe_device = input("Enter PE device hostname: ")
-username = input("Enter username: ")
-
-# Deploy configurations
-deploy_config(customer_name, access_device, pe_device, username)
+if __name__ == "__main__":
+    main()
