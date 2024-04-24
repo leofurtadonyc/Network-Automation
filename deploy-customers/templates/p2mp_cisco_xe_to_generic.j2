@@ -1,5 +1,6 @@
 {# Policy Template for a Cisco ASR 920 L2VPN VFI towards a Cisco IOS XR PE device #}
 interface {{ interface_name }}
+ no service instance {{ service_instance_id }} ethernet
  service instance {{ service_instance_id }} ethernet
   description {{ customer_name }}-{{ service_instance_id }}
 {%- if vlan_id and vlan_id_outer %}
@@ -14,11 +15,13 @@ interface {{ interface_name }}
   service-policy input {{ qos_input }}
   service-policy output {{ qos_output }}
 
+no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
 l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
  vpn id {{ pw_id }}
  mtu 9000
  member {{ pe_address }} encapsulation mpls
 
+no bridge-domain {{ service_instance_id }}
 bridge-domain {{ service_instance_id }} 
  member {{ interface_name }} service-instance {{ service_instance_id }}
  member vfi {{ pw_id }}

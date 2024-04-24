@@ -1,6 +1,7 @@
 {# Service Type: Internet Access - Policy Template for a Cisco IOS XR L2VPN Bridge-Domain IRB towards a Cisco ASR 920 device #}
 l2vpn
  bridge group INTERNET-CORPORATE-CUSTOMERS
+  no bridge-domain {{ customer_name }}-{{ service_instance_id }}
   bridge-domain {{ customer_name }}-{{ service_instance_id }}
    mtu 9000
    storm-control unknown-unicast pps 1000
@@ -13,6 +14,7 @@ l2vpn
   !
 !
 {%- if irb_ipaddr %}
+no interface BVI{{ pw_id }}
 interface BVI{{ pw_id }}
  description {{ customer_name }}-{{ service_instance_id }}
  ipv4 address {{ irb_ipaddr }}
@@ -28,11 +30,13 @@ interface BVI{{ pw_id }}
 {%- if irb_ipaddr and ipv4_lan %}
 router static
  address-family ipv4 unicast
+  no {{ ipv4_lan }} {{ipv4_nexthop }} tag 1000 description {{ customer_name }}-{{ service_instance_id }}
   {{ ipv4_lan }} {{ipv4_nexthop }} tag 1000 description {{ customer_name }}-{{ service_instance_id }}
 {%- endif %}
 !
 {%- if irb_ipv6addr and ipv6_lan %}
 router static
  address-family ipv6 unicast
+  no {{ ipv6_lan }} {{ipv6_nexthop }} tag 1000 description {{ customer_name }}-{{ service_instance_id }}
   {{ ipv6_lan }} {{ipv6_nexthop }} tag 1000 description {{ customer_name }}-{{ service_instance_id }}
 {%- endif %}

@@ -1,5 +1,6 @@
 {# Policy Template for a Cisco ASR 920 L2VPN Xconnect towards a Cisco IOS XR device #}
 interface {{ interface_name }}
+ no service instance {{ service_instance_id }} ethernet
  service instance {{ service_instance_id }} ethernet
   description {{ customer_name }}-{{ service_instance_id }}
 {%- if vlan_id and vlan_id_outer %}
@@ -17,6 +18,7 @@ interface {{ interface_name }}
   service-policy input limita_{{ qos_input }}Mb
   service-policy input limita_{{ qos_output }}Mb
 
+no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
 l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
  description {{ customer_name }}-{{ service_instance_id }}
  member {{ pe_address }} {{ pw_id }} encapsulation mpls
