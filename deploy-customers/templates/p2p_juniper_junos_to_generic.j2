@@ -9,7 +9,7 @@ set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-tags ou
 set routing-instances {{ customer_name }}-{{ service_instance_id }} vlan-id {{ vlan_id }}
 {%- endif %}
 set routing-instances {{ customer_name }}-{{ service_instance_id }} routing-interface irb.{{ pw_id }}
-set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls encapsulation-type ethernet-vlan
+set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls encapsulation-type ethernet
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls control-word
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls no-tunnel-services
 set routing-instances {{ customer_name }}-{{ service_instance_id }} protocols vpls vpls-id {{ pw_id }}
