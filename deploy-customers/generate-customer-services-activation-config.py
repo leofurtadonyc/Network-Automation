@@ -10,7 +10,8 @@ from jinja2 import Environment, FileSystemLoader
 def load_yaml(yaml_path):
     """Load data from a YAML file."""
     with open(yaml_path, 'r') as file:
-        return yaml.safe_load(file)
+        data = yaml.safe_load(file)
+        return data['devices']  # Correctly access the nested 'devices' dictionary
 
 def render_template(template_name, context):
     """Render configuration from Jinja2 templates."""
@@ -22,13 +23,9 @@ def write_to_file(directory, filename, data):
     """Write data to a file and ensure the directory exists."""
     base_path = os.path.abspath(directory)
     filepath = os.path.join(base_path, filename)
-
-    if not os.path.exists(os.path.dirname(filepath)):
-        os.makedirs(os.path.dirname(filepath))
-
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, 'w') as file:
         file.write(data)
-
     print(f"Configuration written to {filepath}")
 
 def collect_inputs():
@@ -51,7 +48,7 @@ def collect_inputs():
     ipv6_nexthop = input("IPv6 next-hop address to customer's LAN: ")
     pe_device = input("Provider Edge Device Hostname: ")
     service_type = input("Service Type (p2p or p2mp): ")
-    return (customer_name, access_device, access_interface, circuit_id, qos_input, qos_output, vlan_id, vlan_id_outer, pw_id, irb_ipaddr, irb_ipv6addr, ipv4_lan, ipv4_nexthop, ipv6_nexthop, ipv6_lan, pe_device, service_type)
+    return (customer_name, access_device, access_interface, circuit_id, qos_input, qos_output, vlan_id, vlan_id_outer, pw_id, irb_ipaddr, irb_ipv6addr, ipv4_lan, ipv4_nexthop, ipv6_lan, ipv6_nexthop, pe_device, service_type)
 
 def valid_ip_network(network):
     """Validate an IP network prefix."""
@@ -78,7 +75,7 @@ def main():
     parser.add_argument("--qos-input", type=int, help="Input QoS policer in bits.")
     parser.add_argument("--qos-output", type=int, help="Output QoS policer in bits.")
     parser.add_argument("--vlan-id", type=int, help="VLAN ID (1-4095).")
-    parser.add_argument("--vlan-id-outer", type=int, help="VLAN ID (1-4095).")
+    parser.add_argument("--vlan-id-outer", type=int, help="Outer VLAN ID (1-4095).")
     parser.add_argument("--pw-id", type=int, help="Pseudowire ID.")
     parser.add_argument("--irb-ipaddr", type=valid_ip_network, help="IP address for the BVI or IRB PE interface.")
     parser.add_argument("--irb-ipv6addr", type=valid_ip_network, help="IPv6 address for the BVI or IRB PE interface.")
@@ -98,8 +95,8 @@ def main():
     start_time = time.time()
 
     devices_config = load_yaml('devices/network_devices.yaml')
-    access_device_info = next((device for device in devices_config['devices'] if device['hostname'] == args.access_device), None)
-    pe_device_info = next((device for device in devices_config['devices'] if device['hostname'] == args.pe_device), None)
+    access_device_info = devices_config.get(args.access_device)  # Use .get to avoid KeyError
+    pe_device_info = devices_config.get(args.pe_device)          # Use .get to avoid KeyError
 
     if not access_device_info or not pe_device_info:
         print("Error: Device information is missing or incorrect in the YAML file.")
