@@ -15,14 +15,18 @@ interface {{ interface_name }}
   service-policy input {{ qos_input }}
   service-policy output {{ qos_output }}
 
+bridge-domain {{ service_instance_id }}
+ no member {{ interface_name }} service-instance {{ service_instance_id }}
+ no member vfi {{ pw_id }}
+no bridge-domain {{ service_instance_id }}
+no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }}
 no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
-no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
+
 l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
  vpn id {{ pw_id }}
  mtu 9000
  member {{ pe_loopback }} encapsulation mpls
 
-no bridge-domain {{ service_instance_id }}
 bridge-domain {{ service_instance_id }} 
  member {{ interface_name }} service-instance {{ service_instance_id }}
  member vfi {{ pw_id }}

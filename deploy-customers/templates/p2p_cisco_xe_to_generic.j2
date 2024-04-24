@@ -18,9 +18,13 @@ interface {{ interface_name }}
   service-policy input limita_{{ qos_input }}Mb
   service-policy input limita_{{ qos_output }}Mb
 
-no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }}
+bridge-domain {{ service_instance_id }}
+ no member {{ interface_name }} service-instance {{ service_instance_id }}
+ no member vfi {{ pw_id }}
 no bridge-domain {{ service_instance_id }}
+no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }}
 no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
+
 l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
  description {{ customer_name }}-{{ service_instance_id }}
  member {{ pe_loopback }} {{ pw_id }} encapsulation mpls
