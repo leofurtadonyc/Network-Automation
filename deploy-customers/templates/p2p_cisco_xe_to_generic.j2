@@ -4,9 +4,12 @@ bridge-domain {{ service_instance_id }}
  no member vfi {{ pw_id }}
 no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }}
 no bridge-domain {{ service_instance_id }}
+l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
+ no member {{ pe_loopback }} {{ pw_id }} encapsulation mpls
+ no member {{ interface_name }} service-instance {{ service_instance_id }}
+no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
 interface {{ interface_name }}
  no service instance {{ service_instance_id }} ethernet
-no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
 
 interface {{ interface_name }}
  service instance {{ service_instance_id }} ethernet
