@@ -5,6 +5,7 @@ import yaml
 import bcrypt
 import os
 import argparse
+import time
 
 def load_devices(file_path='devices/network_devices.yaml'):
     with open(file_path, 'r') as file:
@@ -19,7 +20,6 @@ def verify_user(username, password, credentials_file='usercredentials.sec'):
     return False
 
 def deploy_config(username, password, customer_name, access_device, pe_device):
-    # Load device configurations and user validation
     devices = load_devices()
     if not verify_user(username, password):
         return "Authentication failed. Check username and password."
@@ -33,15 +33,12 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
             ip_address = devices[device_name]['ip_address']
             config_file_path = f"generated_configs/{device_details}"
 
-            # Read configuration file
             with open(config_file_path, 'r') as file:
                 configuration = file.read()
 
-            # Connect to the device
             ssh_client.connect(ip_address, username=username, password=password)
             channel = ssh_client.invoke_shell()
 
-            # Sending device specific commands
             if device_type == 'cisco_xe':
                 commands = ['config terminal', configuration, 'end', 'write memory']
             elif device_type == 'cisco_xr':
@@ -55,7 +52,7 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
 
             for command in commands:
                 channel.send(command + '\n')
-                while not channel.recv_ready():  # Wait for the command to be processed
+                while not channel.recv_ready():
                     time.sleep(1)
 
             print(f"Configuration deployed successfully on {device_name}")
@@ -68,11 +65,11 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
 
 def main():
     parser = argparse.ArgumentParser(description="Network Configuration Deployment")
-    parser.add_argument("customer_name", help="Customer name to identify config files")
-    parser.add_argument("access_device", help="Hostname of the access device")
-    parser.add_argument("pe_device", help="Hostname of the PE device")
-    parser.add_argument("username", help="Username for SSH and credential verification")
-    parser.add_argument("password", help="Password for SSH and credential verification")
+    parser.add_argument("--customer-name", required=True, help="Customer name to identify config files")
+    parser.add_argument("--username", required=True, help="Username for SSH and credential verification")
+    parser.add_argument("--password", required=True, help="Password for SSH and credential verification", type=str)
+    parser.add_argument("--access-device", required=True, help="Hostname of the access device")
+    parser.add_argument("--pe-device", required=True, help="Hostname of the PE device")
 
     args = parser.parse_args()
     
