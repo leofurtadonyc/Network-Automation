@@ -167,6 +167,8 @@ def main():
         'ipv6_nexthop': args.ipv6_nexthop,
         'access_address': access_device_info['ip_address'],
         'pe_address': pe_device_info['ip_address'],
+        'access_loopback': access_device_info['loopback'],
+        'pe_loopback': pe_device_info['loopback'],
         'device_type': pe_device_info['device_type']
     }
 
