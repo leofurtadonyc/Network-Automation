@@ -15,6 +15,7 @@ interface {{ interface_name }}
   service-policy input {{ qos_input }}
   service-policy output {{ qos_output }}
 
+no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
 no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
 l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
  vpn id {{ pw_id }}
