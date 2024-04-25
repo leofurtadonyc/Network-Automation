@@ -32,10 +32,23 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     results = []
 
+    def attempt_connect(ip_address):
+        retries = 3
+        for attempt in range(1, retries + 1):
+            try:
+                ssh_client.connect(ip_address, username=username, password=password, timeout=10)
+                return ssh_client
+            except paramiko.ssh_exception.NoValidConnectionsError as e:
+                if attempt < retries:
+                    print(f"Retrying connection to {ip_address}... Attempt {attempt}")
+                    time.sleep(5)  # wait before retrying
+                else:
+                    raise e
+
     for device_name, device_details in [(access_device, f"{customer_name}_access_config.txt"), (pe_device, f"{customer_name}_pe_config.txt")]:
         if device_name not in devices:
-            print(f"Error: Device {device_name} not found in configuration.")
-            continue  # Skip this device if not found
+            results.append(f"Error: Device {device_name} not found in configuration.")
+            continue
 
         device = devices[device_name]
         try:
@@ -46,7 +59,7 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
             with open(config_file_path, 'r') as file:
                 configuration = file.read()
 
-            ssh_client.connect(ip_address, username=username, password=password)
+            ssh_client = attempt_connect(ip_address)
             channel = ssh_client.invoke_shell()
             time.sleep(2)  # Wait for the shell to initialize
 
