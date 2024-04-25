@@ -31,9 +31,9 @@ interface {{ interface_name }}
 
 l2vpn vfi context {{ customer_name }}-{{ service_instance_id }} 
  vpn id {{ pw_id }}
- mtu 9000
+ mtu 1500
  member {{ pe_loopback }} encapsulation mpls
 
 bridge-domain {{ service_instance_id }} 
  member {{ interface_name }} service-instance {{ service_instance_id }}
- member vfi {{ pw_id }}
+ member vfi {{ customer_name }}-{{ service_instance_id }}
