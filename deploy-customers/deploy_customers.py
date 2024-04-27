@@ -3,7 +3,8 @@
 import paramiko
 import yaml
 import bcrypt
-# import os
+import os
+import datetime
 import argparse
 import time
 import paramiko.util
@@ -63,17 +64,14 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
             channel = ssh_client.invoke_shell()
             time.sleep(2)
 
-            if device_type == 'cisco_xe':
-                commands = ['config terminal', configuration, 'end', 'write memory', 'exit']
-            elif device_type == 'cisco_xr':
-                commands = ['config terminal', configuration, 'commit', 'end', 'exit']
-            elif device_type == 'juniper_junos':
-                commands = ['edit', configuration, 'commit and-quit']
-            elif device_type == 'huawei_vrp':
-                commands = ['system-view', configuration, 'return', 'save', 'Y', 'quit']
-            else:
-                print(f"Unsupported device type: {device_type}")
-                continue
+            commands = {
+                'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
+                'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
+                'juniper_junos': ['edit', configuration, 'commit and-quit'],
+                'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
+            }.get(device_type, [])
+            if not commands:
+                raise ValueError(f"Unsupported device type: {device_type}")
 
             output = ""
             for command in commands:
@@ -84,10 +82,21 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
                 output += channel.recv(9999).decode('utf-8')
 
             results.append(f"Configuration deployed successfully on {device_name} with output: {output}")
+
+            deployment_date = datetime.datetime.now().strftime('%m-%d-%Y')
+            deployed_dir = 'deployed_customer_configs'
+            if not os.path.exists(deployed_dir):
+                os.makedirs(deployed_dir)
+            deployed_file_path = os.path.join(deployed_dir, f"{customer_name}_{device_name}_{device_type}_{deployment_date}.txt")
+            with open(deployed_file_path, 'w') as deployed_file:
+                deployed_file.write(configuration)
+            results.append(f"Configuration saved to {deployed_file_path}")
+
         except Exception as e:
             results.append(f"Failed to deploy configuration on {device_name}: {e}")
         finally:
-            ssh_client.close()
+            if ssh_client:
+                ssh_client.close()
 
     return "\n".join(results)
 
