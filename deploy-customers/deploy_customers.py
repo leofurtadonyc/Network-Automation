@@ -8,12 +8,12 @@ import argparse
 import time
 import paramiko.util
 
-paramiko.util.log_to_file('paramiko.log')  # Enable logging
+paramiko.util.log_to_file('paramiko.log')
 
 def load_devices(file_path='devices/network_devices.yaml'):
     with open(file_path, 'r') as file:
         devices_dict = yaml.safe_load(file)
-        return devices_dict['devices']  # Return the inner dictionary
+        return devices_dict['devices']
 
 def verify_user(username, password, credentials_file='devices/usercredentials.sec'):
     with open(credentials_file, 'r') as file:
@@ -41,7 +41,7 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
             except paramiko.ssh_exception.NoValidConnectionsError as e:
                 if attempt < retries:
                     print(f"Retrying connection to {ip_address}... Attempt {attempt}")
-                    time.sleep(5)  # wait before retrying
+                    time.sleep(5)
                 else:
                     raise e
 
@@ -61,7 +61,7 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
 
             ssh_client = attempt_connect(ip_address)
             channel = ssh_client.invoke_shell()
-            time.sleep(2)  # Wait for the shell to initialize
+            time.sleep(2)
 
             if device_type == 'cisco_xe':
                 commands = ['config terminal', configuration, 'end', 'write memory', 'exit']
@@ -78,10 +78,10 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
             output = ""
             for command in commands:
                 channel.send(command + '\n')
-                time.sleep(1)  # Wait for the command to be processed
+                time.sleep(1)
                 while not channel.recv_ready():
                     time.sleep(1)
-                output += channel.recv(9999).decode('utf-8')  # Collect output
+                output += channel.recv(9999).decode('utf-8')
 
             results.append(f"Configuration deployed successfully on {device_name} with output: {output}")
         except Exception as e:

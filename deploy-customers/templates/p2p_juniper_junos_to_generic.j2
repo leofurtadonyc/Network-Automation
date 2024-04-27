@@ -40,3 +40,4 @@ set routing-options rib inet6.0 static route {{ ipv6_lan }} next-hop {{ ipv6_nex
 set routing-options rib inet6.0 static route {{ ipv6_lan }} community 65000:11000
 set routing-options rib inet6.0 static route {{ ipv6_lan }} community no-export
 {%- endif %}
+commit and-quit
