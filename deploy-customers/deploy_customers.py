@@ -24,6 +24,27 @@ def verify_user(username, password, credentials_file='devices/usercredentials.se
                 return True
     return False
 
+def write_audit_log(customer_name, audit_entries):
+    """Writes all audit entries to a single log file for the session."""
+    audit_dir = 'audit_logs'
+    if not os.path.exists(audit_dir):
+        os.makedirs(audit_dir)
+    
+    audit_file_name = f"{customer_name}_config_deploy_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_audit.txt"
+    audit_file_path = os.path.join(audit_dir, audit_file_name)
+
+    with open(audit_file_path, 'w') as file:
+        for entry in audit_entries:
+            file.write(f"Deployment start: {entry['start_time'].strftime('%Y-%m-%d %H:%M:%S')}\n")
+            file.write(f"Deployment end: {entry['end_time'].strftime('%Y-%m-%d %H:%M:%S')}\n")
+            file.write(f"Deployment duration: {(entry['end_time'] - entry['start_time']).seconds} seconds\n")
+            file.write(f"Device: {entry['device_name']} ({entry['device_type']})\n")
+            file.write(f"Configuration file: {entry['config_file_path']}\n")
+            file.write(f"Deployment result: {'Success' if 'successfully' in entry['result'] else 'Failure'}\n")
+            file.write("--------------------------------------------------\n")
+    
+    return audit_file_path
+
 def deploy_config(username, password, customer_name, access_device, pe_device):
     devices = load_devices()
     if not verify_user(username, password):
@@ -31,38 +52,21 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
 
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    results = []
-
-    def attempt_connect(ip_address):
-        retries = 3
-        for attempt in range(1, retries + 1):
-            try:
-                ssh_client.connect(ip_address, username=username, password=password, timeout=10)
-                return ssh_client
-            except paramiko.ssh_exception.NoValidConnectionsError as e:
-                if attempt < retries:
-                    print(f"Retrying connection to {ip_address}... Attempt {attempt}")
-                    time.sleep(5)
-                else:
-                    raise e
+    audit_entries = []
 
     for device_name, device_details in [(access_device, f"{customer_name}_access_config.txt"), (pe_device, f"{customer_name}_pe_config.txt")]:
-        if device_name not in devices:
-            results.append(f"Error: Device {device_name} not found in configuration.")
+        device = devices.get(device_name)
+        if not device:
             continue
 
-        device = devices[device_name]
+        ip_address = device['ip_address']
+        device_type = device['device_type']
+        config_file_path = f"generated_configs/{device_details}"
+        start_time = datetime.datetime.now()
+
         try:
-            ip_address = device['ip_address']
-            device_type = device['device_type']
-            config_file_path = f"generated_configs/{device_details}"
-
-            with open(config_file_path, 'r') as file:
-                configuration = file.read()
-
-            ssh_client = attempt_connect(ip_address)
-            channel = ssh_client.invoke_shell()
-            time.sleep(2)
+            ssh_client.connect(ip_address, username=username, password=password, timeout=10)
+            configuration = open(config_file_path, 'r').read()
 
             commands = {
                 'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
@@ -70,35 +74,29 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
                 'juniper_junos': ['edit', configuration, 'commit and-quit'],
                 'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
             }.get(device_type, [])
-            if not commands:
-                raise ValueError(f"Unsupported device type: {device_type}")
 
-            output = ""
+            channel = ssh_client.invoke_shell()
             for command in commands:
                 channel.send(command + '\n')
                 time.sleep(1)
-                while not channel.recv_ready():
-                    time.sleep(1)
-                output += channel.recv(9999).decode('utf-8')
 
-            results.append(f"Configuration deployed successfully on {device_name} with output: {output}")
-
-            deployment_date = datetime.datetime.now().strftime('%m-%d-%Y')
-            deployed_dir = 'deployed_customer_configs'
-            if not os.path.exists(deployed_dir):
-                os.makedirs(deployed_dir)
-            deployed_file_path = os.path.join(deployed_dir, f"{customer_name}_{device_name}_{device_type}_{deployment_date}.txt")
-            with open(deployed_file_path, 'w') as deployed_file:
-                deployed_file.write(configuration)
-            results.append(f"Configuration saved to {deployed_file_path}")
-
+            result = f"Configuration deployed successfully on {device_name}"
         except Exception as e:
-            results.append(f"Failed to deploy configuration on {device_name}: {e}")
+            result = f"Failed to deploy configuration on {device_name}: {e}"
         finally:
-            if ssh_client:
-                ssh_client.close()
+            end_time = datetime.datetime.now()
+            audit_entries.append({
+                'start_time': start_time,
+                'end_time': end_time,
+                'device_name': device_name,
+                'device_type': device_type,
+                'config_file_path': config_file_path,
+                'result': result
+            })
+            ssh_client.close()
 
-    return "\n".join(results)
+    audit_path = write_audit_log(customer_name, audit_entries)
+    return f"Deployment completed. Detailed audit log saved at: {audit_path}"
 
 def main():
     parser = argparse.ArgumentParser(description="Network Configuration Deployment")
