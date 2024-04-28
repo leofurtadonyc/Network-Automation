@@ -78,10 +78,16 @@ def write_audit_log(customer_name, audit_entries):
     
     return audit_file_path
 
+import os
+
 def find_latest_config(customer_name, device_type, deployed_dir='deployed_configs'):
-    """Find the most recent configuration file for a customer per device type."""
+    """Find the most recent configuration file for a customer per device type. Create the directory if it does not exist."""
+    if not os.path.exists(deployed_dir):
+        os.makedirs(deployed_dir, exist_ok=True)
+    
     latest_file = None
     latest_time = None
+
     for file in os.listdir(deployed_dir):
         if file.startswith(f"{customer_name}_{device_type}") and file.endswith('.txt'):
             file_path = os.path.join(deployed_dir, file)
@@ -89,6 +95,7 @@ def find_latest_config(customer_name, device_type, deployed_dir='deployed_config
             if not latest_time or file_time > latest_time:
                 latest_time = file_time
                 latest_file = file_path
+
     return latest_file
 
 def compare_configurations(new_config, old_config_path):
