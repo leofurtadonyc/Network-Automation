@@ -60,6 +60,7 @@ def write_audit_log(customer_name, audit_entries):
     audit_file_path = os.path.join(audit_dir, audit_file_name)
 
     with open(audit_file_path, 'w') as file:
+        """Write audit log entries to file."""
         file.write(f"Operator: {audit_entries[0]['operator']} from IP {audit_entries[0]['operator_ip']}\n")
         file.write("--------------------------------------------------\n")
         for entry in audit_entries:
@@ -70,6 +71,7 @@ def write_audit_log(customer_name, audit_entries):
             file.write(f"Generated config file: {entry['generated_config_path']}\n")
             file.write(f"Deployed config file: {entry['deployed_config_path']}\n")
             file.write(f"Deployment result: {entry['result']}\n")
+            file.write(f"Activation status: {entry['activation_status']}\n")
             file.write("Configuration differences:\n")
             file.write(entry['diff_results'] + "\n")
             file.write("--------------------------------------------------\n")
