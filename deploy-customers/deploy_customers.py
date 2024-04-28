@@ -8,8 +8,23 @@ import datetime
 import argparse
 import time
 import paramiko.util
+import getpass
+import socket
 
-paramiko.util.log_to_file('audit_logs/paramiko.log')
+def get_current_user():
+    return getpass.getuser()
+
+def get_ip_address():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.254.254.254', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = 'N/A'
+    finally:
+        s.close()
+    return IP
 
 def load_devices(file_path='devices/network_devices.yaml'):
     with open(file_path, 'r') as file:
@@ -29,10 +44,14 @@ def write_audit_log(customer_name, audit_entries):
     if not os.path.exists(audit_dir):
         os.makedirs(audit_dir)
     
+    paramiko.util.log_to_file('audit_logs/paramiko.log')
+    
     audit_file_name = f"{customer_name}_config_deploy_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_audit.txt"
     audit_file_path = os.path.join(audit_dir, audit_file_name)
 
     with open(audit_file_path, 'w') as file:
+        file.write(f"Operator: {audit_entries[0]['operator']} from IP {audit_entries[0]['operator_ip']}\n")
+        file.write("--------------------------------------------------\n")
         for entry in audit_entries:
             file.write(f"Deployment start: {entry['start_time'].strftime('%Y-%m-%d %H:%M:%S')}\n")
             file.write(f"Deployment end: {entry['end_time'].strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -43,7 +62,7 @@ def write_audit_log(customer_name, audit_entries):
             file.write(f"Deployment result: {'Success' if 'successfully' in entry['result'] else 'Failure'}\n")
             file.write("--------------------------------------------------\n")
     
-    return audit_file_path 
+    return audit_file_path
 
 def save_deployed_config(customer_name, device_name, configuration):
     """Saves the deployed configuration to a file."""
@@ -64,6 +83,8 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
     if not verify_user(username, password):
         return "Authentication failed. Check username and password."
 
+    operator = get_current_user()
+    operator_ip = get_ip_address()
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     audit_entries = []
@@ -107,7 +128,9 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
                 'device_type': device_type,
                 'generated_config_path': generated_config_path,
                 'deployed_config_path': deployed_config_path,
-                'result': result
+                'result': result,
+                'operator': operator,
+                'operator_ip': operator_ip
             })
             ssh_client.close()
 
