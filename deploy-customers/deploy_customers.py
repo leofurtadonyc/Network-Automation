@@ -9,7 +9,7 @@ import argparse
 import time
 import paramiko.util
 
-paramiko.util.log_to_file('paramiko.log')
+paramiko.util.log_to_file('audit_logs/paramiko.log')
 
 def load_devices(file_path='devices/network_devices.yaml'):
     with open(file_path, 'r') as file:
@@ -25,7 +25,6 @@ def verify_user(username, password, credentials_file='devices/usercredentials.se
     return False
 
 def write_audit_log(customer_name, audit_entries):
-    """Writes all audit entries to a single log file for the session."""
     audit_dir = 'audit_logs'
     if not os.path.exists(audit_dir):
         os.makedirs(audit_dir)
@@ -39,11 +38,26 @@ def write_audit_log(customer_name, audit_entries):
             file.write(f"Deployment end: {entry['end_time'].strftime('%Y-%m-%d %H:%M:%S')}\n")
             file.write(f"Deployment duration: {(entry['end_time'] - entry['start_time']).seconds} seconds\n")
             file.write(f"Device: {entry['device_name']} ({entry['device_type']})\n")
-            file.write(f"Configuration file: {entry['config_file_path']}\n")
+            file.write(f"Generated config file: {entry['generated_config_path']}\n")
+            file.write(f"Deployed config file: {entry['deployed_config_path']}\n")
             file.write(f"Deployment result: {'Success' if 'successfully' in entry['result'] else 'Failure'}\n")
             file.write("--------------------------------------------------\n")
     
-    return audit_file_path
+    return audit_file_path 
+
+def save_deployed_config(customer_name, device_name, configuration):
+    """Saves the deployed configuration to a file."""
+    deployed_dir = 'deployed_configs'
+    if not os.path.exists(deployed_dir):
+        os.makedirs(deployed_dir)
+    
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{customer_name}_access_deployed_config_{device_name}_{timestamp}.txt"
+    file_path = os.path.join(deployed_dir, filename)
+    
+    with open(file_path, 'w') as file:
+        file.write(configuration)
+    return file_path
 
 def deploy_config(username, password, customer_name, access_device, pe_device):
     devices = load_devices()
@@ -61,12 +75,12 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
 
         ip_address = device['ip_address']
         device_type = device['device_type']
-        config_file_path = f"generated_configs/{device_details}"
+        generated_config_path = f"generated_configs/{device_details}"
         start_time = datetime.datetime.now()
 
         try:
             ssh_client.connect(ip_address, username=username, password=password, timeout=10)
-            configuration = open(config_file_path, 'r').read()
+            configuration = open(generated_config_path, 'r').read()
 
             commands = {
                 'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
@@ -80,6 +94,7 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
                 channel.send(command + '\n')
                 time.sleep(1)
 
+            deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
             result = f"Configuration deployed successfully on {device_name}"
         except Exception as e:
             result = f"Failed to deploy configuration on {device_name}: {e}"
@@ -90,7 +105,8 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
                 'end_time': end_time,
                 'device_name': device_name,
                 'device_type': device_type,
-                'config_file_path': config_file_path,
+                'generated_config_path': generated_config_path,
+                'deployed_config_path': deployed_config_path,
                 'result': result
             })
             ssh_client.close()
