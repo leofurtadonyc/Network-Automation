@@ -17,11 +17,7 @@ interface GigabitEthernet2
   service-policy input limita_500Mb
   service-policy output limita_500Mb
 
-l2vpn vfi context LEONARDOFURTADO-20 
- vpn id 20
- mtu 1500
- member 10.255.255.5 encapsulation mpls
-
-bridge-domain 20 
+l2vpn xconnect context LEONARDOFURTADO-20
+ description LEONARDOFURTADO-20
+ member 10.255.255.5 20 encapsulation mpls
  member GigabitEthernet2 service-instance 20
- member vfi LEONARDOFURTADO-20
