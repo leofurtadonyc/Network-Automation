@@ -52,7 +52,7 @@ def save_deployed_config(customer_name, device_name, configuration):
         os.makedirs(deployed_dir)
     
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{customer_name}_access_deployed_config_{device_name}_{timestamp}.txt"
+    filename = f"{customer_name}_deployed_config_{device_name}_{timestamp}.txt"
     file_path = os.path.join(deployed_dir, filename)
     
     with open(file_path, 'w') as file:
