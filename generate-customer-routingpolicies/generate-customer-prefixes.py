@@ -40,11 +40,11 @@ def parse_prefixes(text_data):
     try:
         lines = text_data.split('\n')
         for line in lines:
-            if '/' in line:  # Check if the line contains an IP prefix
+            if '/' in line:
                 start = line.find('"prefix": "') + 11
                 end = line.find('",', start)
                 if start > 10 and end != -1:
-                    prefix = line[start:end].replace('\/', '/')
+                    prefix = line[start:end].replace('\\/', '/')
                     prefixes.append(prefix)
         return prefixes
     except Exception as e:
