@@ -11,7 +11,7 @@ def load_yaml(yaml_path):
     """Load data from a YAML file."""
     with open(yaml_path, 'r') as file:
         data = yaml.safe_load(file)
-        return data['devices']  # Correctly access the nested 'devices' dictionary
+        return data['devices']
 
 def render_template(template_name, context):
     """Render configuration from Jinja2 templates."""
@@ -111,7 +111,6 @@ def main():
         print("Error: Device information is missing or incorrect in the YAML file.")
         return
     
-    # Check if customer provisioning is allowed for both devices
     if not access_device_info.get('customer_provisioning', False) and not pe_device_info.get('customer_provisioning', False):
         print(f"Error: Customer provisioning is disabled for both specified devices, Access device {args.access_device} and PE device {args.pe_device}.")
         print("Are you sure these are the correct devices?\nCannot proceed with configuration.")
