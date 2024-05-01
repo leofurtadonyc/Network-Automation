@@ -116,29 +116,49 @@ def main():
     access_device_info = devices_config.get(args.access_device)
     pe_device_info = devices_config.get(args.pe_device)
 
+    """If neither Access or PE device is found in the YAML file, print an error message and exit."""
     if not access_device_info or not pe_device_info:
         print("Error: Device information is missing or incorrect in the YAML file.")
+        print("Please check the devices names.")
         return
     
+    """Preventing configuration generation if the specified access interface is not allowed for customer configurations (i.e., management or uplink interface)."""
+    if not interface_allowed(access_device_info, args.access_interface):
+        print(f"Error: The specified interface {args.access_interface} on the Access device {args.access_device} is not allowed for customer configurations.")
+        return
+
+    """Preventing configuration if device roles don't match the expected roles for the specified devices."""
+    if access_device_info.get('device_role') != 'access' and pe_device_info.get('device_role') != 'pe':
+        print(f"Error: Incorrect device roles specified. The device '{args.access_device}' is assigned the role '{access_device_info.get('device_role')}', but expected 'access'.")
+        print(f"Similarly, the device '{args.pe_device}' is assigned the role '{pe_device_info.get('device_role')}', but expected 'pe'.")
+        print("Please check the device roles in the configuration.")
+        return
+
+    if access_device_info.get('device_role') != 'access':
+        print(f"Error: The specified Access device {args.access_device} has a role of {access_device_info.get('device_role')}, not 'access'.")
+        return
+
+    if pe_device_info.get('device_role') != 'pe':
+        print(f"Error: The specified PE device {args.pe_device} has a role of {pe_device_info.get('device_role')}, not 'pe'.")
+        return
+    
+    """Preventing configuration generation if customer provisioning is disabled for the specified devices."""
     if not access_device_info.get('customer_provisioning', False) and not pe_device_info.get('customer_provisioning', False):
         print(f"Error: Customer provisioning is disabled for both specified devices, Access device {args.access_device} and PE device {args.pe_device}.")
-        print("Are you sure these are the correct devices?\nCannot proceed with configuration.")
+        print("Cannot proceed with configuration.")
         return
 
     if not access_device_info.get('customer_provisioning', False):
         print(f"Error: Customer provisioning is disabled for this specified Access device {args.access_device}.")
-        print("Are you sure this is the correct device?\nCannot proceed with configuration.")        
+        print("Cannot proceed with configuration.")        
         return
 
     if not pe_device_info.get('customer_provisioning', False):
         print(f"Error: Customer provisioning is disabled for this specified PE device {args.pe_device}.")
-        print("Are you sure this is the correct device?\nCannot proceed with configuration.")
+        print("Cannot proceed with configuration.")
         return
     
-    if not interface_allowed(access_device_info, args.access_interface):
-        print(f"Error: The specified interface {args.access_interface} on the Access device {args.access_device} is not allowed for customer configurations.")
-        return
-    
+    """Rendering configurations based on device types and service types."""
     if access_device_info['device_type'] == 'cisco_xe' and args.service_type == 'p2p':
         access_template_name = "p2p_cisco_xe_to_generic.j2"
     elif access_device_info['device_type'] == 'cisco_xe' and args.service_type == 'p2mp':
