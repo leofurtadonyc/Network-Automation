@@ -4,22 +4,28 @@ devices:
     ip_address: '192.168.255.11'
     loopback: '10.255.255.1'
     customer_provisioning: true
+    forbidden_interfaces:
+      - '^GigabitEthernet[2-4]$'  # Interfaces not intended for customer configurations; reserved for uplinks and/or management
+      - '^Loopback[0-9999]$'  # No customers should be configured on loopbacks 
   a-huawei-02:
     device_type: 'huawei_vrp'
     ip_address: '192.168.255.12'
     loopback: '10.255.255.2'
     customer_provisioning: true
+    forbidden_interfaces:
+      - '^Ethernet1/0/[3-9]$'  # Interfaces not intended for customer configurations; reserved for uplinks and/or management
+      - '^Loopback[0-9999]$'  # No customers should be configured on loopbacks
   p-cisco-01:
-      device_type: 'cisco_xe'
-      ip_address: '192.168.255.13'
-      loopback: '10.255.255.3'
-      customer_provisioning: false
+    device_type: 'cisco_xe'
+    ip_address: '192.168.255.13'
+    loopback: '10.255.255.3'
+    customer_provisioning: false
   p-cisco-02:
       device_type: 'cisco_xe'
       ip_address: '192.168.255.14'
       loopback: '10.255.255.4'
       customer_provisioning: false
-  pe-junos-01:
+  pe-juniper-01:
     device_type: 'juniper_junos'
     ip_address: '192.168.255.15'
     loopback: '10.255.255.5'

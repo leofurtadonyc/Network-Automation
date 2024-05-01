@@ -5,6 +5,7 @@ import argparse
 import time
 import yaml
 import ipaddress
+import re
 from jinja2 import Environment, FileSystemLoader
 
 def load_yaml(yaml_path):
@@ -75,6 +76,14 @@ def valid_ip_lan(network):
     except ValueError:
         raise argparse.ArgumentTypeError(f"Invalid IP network: {network}")
 
+def interface_allowed(device_info, interface_name):
+    """Check if the specified interface is allowed based on forbidden ranges in the device configuration."""
+    forbidden_patterns = device_info.get('forbidden_interfaces', [])
+    for pattern in forbidden_patterns:
+        if re.match(pattern, interface_name):
+            return False
+    return True
+
 def main():
     parser = argparse.ArgumentParser(description="Generate service provisioning configurations for network devices.")
     parser.add_argument("--customer-name", type=str, help="Customer name for the service.")
@@ -124,6 +133,10 @@ def main():
     if not pe_device_info.get('customer_provisioning', False):
         print(f"Error: Customer provisioning is disabled for this specified PE device {args.pe_device}.")
         print("Are you sure this is the correct device?\nCannot proceed with configuration.")
+        return
+    
+    if not interface_allowed(access_device_info, args.access_interface):
+        print(f"Error: The specified interface {args.access_interface} on the Access device {args.access_device} is not allowed for customer configurations.")
         return
     
     if access_device_info['device_type'] == 'cisco_xe' and args.service_type == 'p2p':
