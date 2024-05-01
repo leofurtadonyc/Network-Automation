@@ -4,6 +4,7 @@ import os
 import argparse
 import time
 import yaml
+import json
 import ipaddress
 import re
 from jinja2 import Environment, FileSystemLoader
@@ -84,6 +85,27 @@ def interface_allowed(device_info, interface_name):
             return False
     return True
 
+def log_error(directory, customer_name, message, error_code):
+    """Log an error message with an error code to a structured JSON file for future reference. The deploy script should not move forward if an error is logged."""
+    error_file = f"{customer_name}_error.json"
+    error_path = os.path.join(directory, error_file)
+    error_info = {
+        "error_message": message,
+        "error_code": error_code,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+    with open(error_path, 'w') as file:
+        json.dump(error_info, file, indent=4)
+    print(f"Error logged to {error_path}")
+
+def delete_error_log(directory, customer_name):
+    """Delete a previous error log file for the customer if it exists. This is to unblock the deployment if the error condition is resolved."""
+    error_file = f"{customer_name}_error.json"
+    error_path = os.path.join(directory, error_file)
+    if os.path.exists(error_path):
+        os.remove(error_path)
+        print(f"Deleted any old error log to unblock deployment: {error_path}")
+
 def main():
     parser = argparse.ArgumentParser(description="Generate service provisioning configurations for network devices.")
     parser.add_argument("--customer-name", type=str, help="Customer name for the service.")
@@ -120,11 +142,17 @@ def main():
     if not access_device_info or not pe_device_info:
         print("Error: Device information is missing or incorrect in the YAML file.")
         print("Please check the devices names.")
+        log_error('generated_configs', args.customer_name, 
+                  "Device information is missing or incorrect in the YAML file. Please check the device names.",
+                  400)
         return
     
     """Preventing configuration generation if the specified access interface is not allowed for customer configurations (i.e., management or uplink interface)."""
     if not interface_allowed(access_device_info, args.access_interface):
         print(f"Error: The specified interface {args.access_interface} on the Access device {args.access_device} is not allowed for customer configurations.")
+        log_error('generated_configs', args.customer_name, 
+                  f"The specified interface {args.access_interface} on the Access device {args.access_device} is not allowed for customer configurations.",
+                  400)
         return
 
     """Preventing configuration if device roles don't match the expected roles for the specified devices."""
@@ -132,30 +160,48 @@ def main():
         print(f"Error: Incorrect device roles specified. The device '{args.access_device}' is assigned the role '{access_device_info.get('device_role')}', but expected 'access'.")
         print(f"Similarly, the device '{args.pe_device}' is assigned the role '{pe_device_info.get('device_role')}', but expected 'pe'.")
         print("Please check the device roles in the configuration.")
+        log_error('generated_configs', args.customer_name, 
+                  f"Incorrect device roles specified. The device '{args.access_device}' is assigned the role '{access_device_info.get('device_role')}', but expected 'access'. The device '{args.pe_device}' is assigned the role '{pe_device_info.get('device_role')}', but expected 'pe'.",
+                  400)
         return
 
     if access_device_info.get('device_role') != 'access':
         print(f"Error: The specified Access device {args.access_device} has a role of {access_device_info.get('device_role')}, not 'access'.")
+        log_error('generated_configs', args.customer_name, 
+                  f"The specified Access device {args.access_device} has a role of {access_device_info.get('device_role')}, not 'access'.",
+                  400)
         return
 
     if pe_device_info.get('device_role') != 'pe':
         print(f"Error: The specified PE device {args.pe_device} has a role of {pe_device_info.get('device_role')}, not 'pe'.")
+        log_error('generated_configs', args.customer_name,
+                    f"The specified PE device {args.pe_device} has a role of {pe_device_info.get('device_role')}, not 'pe'.",
+                    400)
         return
     
     """Preventing configuration generation if customer provisioning is disabled for the specified devices."""
     if not access_device_info.get('customer_provisioning', False) and not pe_device_info.get('customer_provisioning', False):
         print(f"Error: Customer provisioning is disabled for both specified devices, Access device {args.access_device} and PE device {args.pe_device}.")
         print("Cannot proceed with configuration.")
+        log_error('generated_configs', args.customer_name,
+                  f"Customer provisioning is disabled for both specified devices, Access device {args.access_device} and PE device {args.pe_device}. Cannot proceed with configuration.",
+                  400)
         return
 
     if not access_device_info.get('customer_provisioning', False):
         print(f"Error: Customer provisioning is disabled for this specified Access device {args.access_device}.")
-        print("Cannot proceed with configuration.")        
+        print("Cannot proceed with configuration.")
+        log_error('generated_configs', args.customer_name,
+                  "Customer provisioning is disabled for the specified Access device. Cannot proceed with configuration.",
+                  400)
         return
 
     if not pe_device_info.get('customer_provisioning', False):
         print(f"Error: Customer provisioning is disabled for this specified PE device {args.pe_device}.")
         print("Cannot proceed with configuration.")
+        log_error('generated_configs', args.customer_name,
+                    "Customer provisioning is disabled for the specified PE device. Cannot proceed with configuration.",
+                    400)
         return
     
     """Rendering configurations based on device types and service types."""
@@ -220,13 +266,20 @@ def main():
         'device_type': pe_device_info['device_type']
     }
 
-    access_rendered_config = render_template(access_template_name, context) + '\n'
-    access_output_file = f"{args.customer_name}_access_config.txt"
-    write_to_file('generated_configs', access_output_file, access_rendered_config)
-
-    pe_rendered_config = render_template(pe_template_name, context) + '\n'
-    pe_output_file = f"{args.customer_name}_pe_config.txt"
-    write_to_file('generated_configs', pe_output_file, pe_rendered_config)
+    try:
+        access_rendered_config = render_template(access_template_name, context) + '\n'
+        pe_rendered_config = render_template(pe_template_name, context) + '\n'
+        access_output_file = f"{args.customer_name}_access_config.txt"
+        pe_output_file = f"{args.customer_name}_pe_config.txt"
+        write_to_file('generated_configs', access_output_file, access_rendered_config)
+        write_to_file('generated_configs', pe_output_file, pe_rendered_config)
+        delete_error_log('generated_configs', args.customer_name)
+        print("Configuration generation completed successfully.")
+    except Exception as e:
+        log_error('generated_configs', args.customer_name,
+                  f"Failed to generate configurations due to: {str(e)}",
+                  500)
+        return
 
     elapsed_time = time.time() - start_time
     print(f"Configuration generation completed in {elapsed_time:.2f} seconds.")
