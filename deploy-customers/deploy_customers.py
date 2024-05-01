@@ -3,6 +3,7 @@
 import os
 import paramiko
 import yaml
+import json
 import bcrypt
 import datetime
 import argparse
@@ -119,8 +120,23 @@ def save_deployed_config(customer_name, device_name, configuration):
         file.write(configuration)
     return file_path
 
+def check_for_error_logs(customer_name, directory='generated_configs'):
+    """Check for existing error logs for the customer and abort deployment if found."""
+    error_file = f"{customer_name}_error.json"
+    error_path = os.path.join(directory, error_file)
+    if os.path.exists(error_path):
+        with open(error_path, 'r') as file:
+            error_data = json.load(file)
+        return error_data
+    return None
+
 def deploy_config(username, password, customer_name, access_device, pe_device):
     """Deploy configurations to access and PE devices for a customer."""
+    # Check for error logs before deployment
+    error_data = check_for_error_logs(customer_name)
+    if error_data:
+        return f"Deployment aborted due to config generation errors: {error_data['error_message']} (Error Code: {error_data['error_code']})"
+
     devices = load_devices()
     if not verify_user(username, password):
         return "Authentication failed. Check username and password."
