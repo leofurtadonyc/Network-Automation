@@ -269,8 +269,8 @@ def main():
     try:
         access_rendered_config = render_template(access_template_name, context) + '\n'
         pe_rendered_config = render_template(pe_template_name, context) + '\n'
-        access_output_file = f"{args.customer_name}_access_config.txt"
-        pe_output_file = f"{args.customer_name}_pe_config.txt"
+        access_output_file = f"{args.customer_name}_{args.access_device}_access_config.txt"
+        pe_output_file = f"{args.customer_name}_{args.pe_device}_pe_config.txt"
         write_to_file('generated_configs', access_output_file, access_rendered_config)
         write_to_file('generated_configs', pe_output_file, pe_rendered_config)
         delete_error_log('generated_configs', args.customer_name)
