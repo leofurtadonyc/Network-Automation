@@ -88,10 +88,9 @@ def find_latest_config(customer_name, device_name, deployed_dir='deployed_config
         for file in os.listdir(deployed_dir):
             if file.startswith(f"{customer_name}_{device_name}") and file.endswith('.txt'):
                 try:
-                    # Split filename to extract the date and time parts
                     parts = file.split('_')
-                    date_part = parts[-2]  # This should be '20240501'
-                    time_part = parts[-1].split('.')[0]  # This should be '210345'
+                    date_part = parts[-2]
+                    time_part = parts[-1].split('.')[0]
                     full_datetime_str = f"{date_part}_{time_part}"
                     file_time = datetime.datetime.strptime(full_datetime_str, '%Y%m%d_%H%M%S')
                     
