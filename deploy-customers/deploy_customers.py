@@ -79,32 +79,42 @@ def write_audit_log(customer_name, audit_entries):
     
     return audit_file_path
 
-def find_latest_config(customer_name, device_type, deployed_dir='deployed_configs'):
-    """Find the most recent configuration file for a customer per device type. Create the directory if it does not exist."""
-    if not os.path.exists(deployed_dir):
-        os.makedirs(deployed_dir, exist_ok=True)
-    
+def find_latest_config(customer_name, device_name, deployed_dir='deployed_configs'):
+    """Find the most recent configuration file for a customer per device type."""
     latest_file = None
     latest_time = None
 
-    for file in os.listdir(deployed_dir):
-        if file.startswith(f"{customer_name}_{device_type}") and file.endswith('.txt'):
-            file_path = os.path.join(deployed_dir, file)
-            file_time = os.path.getmtime(file_path)
-            if not latest_time or file_time > latest_time:
-                latest_time = file_time
-                latest_file = file_path
+    try:
+        for file in os.listdir(deployed_dir):
+            if file.startswith(f"{customer_name}_{device_name}") and file.endswith('.txt'):
+                try:
+                    # Split filename to extract the date and time parts
+                    parts = file.split('_')
+                    date_part = parts[-2]  # This should be '20240501'
+                    time_part = parts[-1].split('.')[0]  # This should be '210345'
+                    full_datetime_str = f"{date_part}_{time_part}"
+                    file_time = datetime.datetime.strptime(full_datetime_str, '%Y%m%d_%H%M%S')
+                    
+                    if not latest_time or file_time > latest_time:
+                        latest_time = file_time
+                        latest_file = os.path.join(deployed_dir, file)
+                except ValueError as e:
+                    print(f"Error parsing timestamp from filename '{file}': {str(e)}")
+                    continue
+    except Exception as e:
+        print(f"Error finding latest configuration file: {str(e)}")
 
     return latest_file
+
 
 def compare_configurations(new_config, old_config_path):
     """Generate a diff between the new configuration and the most recent configuration."""
     if not old_config_path or not os.path.exists(old_config_path):
-        return "No previous configuration to compare."
+        return None
     with open(old_config_path, 'r') as file:
         old_config = file.readlines()
     new_config = new_config.splitlines()
-    diff = difflib.unified_diff(old_config, new_config, fromfile='old_config', tofile='new_config', lineterm='')
+    diff = list(difflib.unified_diff(old_config, new_config, fromfile='old_config', tofile='new_config', lineterm=''))
     return '\n'.join(diff) if diff else "No changes detected."
 
 def save_deployed_config(customer_name, device_name, configuration):
@@ -154,14 +164,8 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
     access_config_path = f"generated_configs/{customer_name}_{access_device}_access_config.txt"
     pe_config_path = f"generated_configs/{customer_name}_{pe_device}_pe_config.txt"
 
-    # Check that configuration files for both devices exist
     if not os.path.exists(access_config_path) or not os.path.exists(pe_config_path):
-        missing_files = []
-        if not os.path.exists(access_config_path):
-            missing_files.append(f"access device {access_device}")
-        if not os.path.exists(pe_config_path):
-            missing_files.append(f"PE device {pe_device}")
-        return f"Configuration file(s) for {', '.join(missing_files)} not found. Wrong device? Check the device names and generated files."
+        return "Configuration file(s) for specified devices not found. Please verify and try again."
 
     try:
         configurations = {
@@ -174,13 +178,15 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
             if not device:
                 return f"Device {device_name} not found in device configuration."
 
+            latest_config_path = find_latest_config(customer_name, device_name)
+            activation_status = "First-time activation" if not latest_config_path else "Re-activation"
+
             device_type = device['device_type']
             ip_address = device['ip_address']
             configuration = open(config_path, 'r').read()
             start_time = datetime.datetime.now()
             deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
-            diff_results = compare_configurations(configuration, find_latest_config(customer_name, device_name))
-            activation_status = "Re-activation" if diff_results != "No previous configuration to compare." else "First-time activation"
+            diff_results = compare_configurations(configuration, latest_config_path) if latest_config_path else "No previous configuration to compare."
 
             ssh_client.connect(ip_address, username=username, password=password, timeout=10)
             channel = ssh_client.invoke_shell()
