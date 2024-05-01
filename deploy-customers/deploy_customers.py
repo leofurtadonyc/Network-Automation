@@ -79,8 +79,6 @@ def write_audit_log(customer_name, audit_entries):
     
     return audit_file_path
 
-import os
-
 def find_latest_config(customer_name, device_type, deployed_dir='deployed_configs'):
     """Find the most recent configuration file for a customer per device type. Create the directory if it does not exist."""
     if not os.path.exists(deployed_dir):
@@ -130,9 +128,15 @@ def check_for_error_logs(customer_name, directory='generated_configs'):
         return error_data
     return None
 
+def cleanup_generated_configs(customer_name, directory='generated_configs'):
+    """Remove generated configuration files for a specific customer post-deployment."""
+    for filename in os.listdir(directory):
+        if filename.startswith(customer_name) and filename.endswith(".txt"):
+            os.remove(os.path.join(directory, filename))
+            print(f"Removed {filename} from {directory} after successful deployment.")
+
 def deploy_config(username, password, customer_name, access_device, pe_device):
-    """Deploy configurations to access and PE devices for a customer."""
-    # Check for error logs before deployment
+    """Deploy configurations to access and PE devices for a customer, ensuring both device configurations are correct."""
     error_data = check_for_error_logs(customer_name)
     if error_data:
         return f"Deployment aborted due to config generation errors: {error_data['error_message']} (Error Code: {error_data['error_code']})"
@@ -147,22 +151,36 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     audit_entries = []
 
-    for device_name, config_suffix in [(access_device, 'access'), (pe_device, 'pe')]:
-        device = devices.get(device_name)
-        if not device:
-            continue
+    access_config_path = f"generated_configs/{customer_name}_{access_device}_access_config.txt"
+    pe_config_path = f"generated_configs/{customer_name}_{pe_device}_pe_config.txt"
 
-        device_type = device['device_type']
-        ip_address = device['ip_address']
-        generated_config_path = f"generated_configs/{customer_name}_{config_suffix}_config.txt"
-        start_time = datetime.datetime.now()
-        latest_config_path = find_latest_config(customer_name, device_name)  # Ensure correct path handling
+    # Check that configuration files for both devices exist
+    if not os.path.exists(access_config_path) or not os.path.exists(pe_config_path):
+        missing_files = []
+        if not os.path.exists(access_config_path):
+            missing_files.append(f"access device {access_device}")
+        if not os.path.exists(pe_config_path):
+            missing_files.append(f"PE device {pe_device}")
+        return f"Configuration file(s) for {', '.join(missing_files)} not found. Wrong device? Check the device names and generated files."
 
-        try:
-            configuration = open(generated_config_path, 'r').read()
+    try:
+        configurations = {
+            access_device: (access_config_path, 'access'),
+            pe_device: (pe_config_path, 'pe')
+        }
+        all_successful = True
+        for device_name, (config_path, config_suffix) in configurations.items():
+            device = devices.get(device_name)
+            if not device:
+                return f"Device {device_name} not found in device configuration."
+
+            device_type = device['device_type']
+            ip_address = device['ip_address']
+            configuration = open(config_path, 'r').read()
+            start_time = datetime.datetime.now()
             deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
-            diff_results = compare_configurations(configuration, latest_config_path) if latest_config_path else "No previous configuration to compare."
-            activation_status = "Re-activation" if latest_config_path else "First-time activation"
+            diff_results = compare_configurations(configuration, find_latest_config(customer_name, device_name))
+            activation_status = "Re-activation" if diff_results != "No previous configuration to compare." else "First-time activation"
 
             ssh_client.connect(ip_address, username=username, password=password, timeout=10)
             channel = ssh_client.invoke_shell()
@@ -177,19 +195,15 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
                 channel.send(command + '\n')
                 time.sleep(1)
 
-            result = "Success"
-        except Exception as e:
-            result = f"Failure: {str(e)}"
-            diff_results = "Error comparing configurations due to deployment error."
-            activation_status = "Error determining activation status"
-        finally:
+            ssh_client.close()
             end_time = datetime.datetime.now()
+            result = "Success"
             audit_entries.append({
                 'start_time': start_time,
                 'end_time': end_time,
                 'device_name': device_name,
                 'device_type': device_type,
-                'generated_config_path': generated_config_path,
+                'generated_config_path': config_path,
                 'deployed_config_path': deployed_config_path,
                 'result': result,
                 'diff_results': diff_results,
@@ -197,10 +211,16 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
                 'operator': operator,
                 'operator_ip': operator_ip
             })
-            ssh_client.close()
+    except Exception as e:
+        all_successful = False
+        print(f"Deployment failed with an exception: {str(e)}")
 
-    audit_path = write_audit_log(customer_name, audit_entries)
-    return f"Deployment completed. Detailed audit log saved at: {audit_path}"
+    if all_successful:
+        audit_path = write_audit_log(customer_name, audit_entries)
+        cleanup_generated_configs(customer_name)
+        return f"Deployment completed successfully. Detailed audit log saved at: {audit_path}"
+    else:
+        return "One or more deployments failed. Check the logs for more details."
 
 def main():
     parser = argparse.ArgumentParser(description="Network Configuration Deployment")
