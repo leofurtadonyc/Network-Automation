@@ -104,11 +104,27 @@ def main():
     start_time = time.time()
 
     devices_config = load_yaml('devices/network_devices.yaml')
-    access_device_info = devices_config.get(args.access_device)  # Use .get to avoid KeyError
-    pe_device_info = devices_config.get(args.pe_device)          # Use .get to avoid KeyError
+    access_device_info = devices_config.get(args.access_device)
+    pe_device_info = devices_config.get(args.pe_device)
 
     if not access_device_info or not pe_device_info:
         print("Error: Device information is missing or incorrect in the YAML file.")
+        return
+    
+    # Check if customer provisioning is allowed for both devices
+    if not access_device_info.get('customer_provisioning', False) and not pe_device_info.get('customer_provisioning', False):
+        print(f"Error: Customer provisioning is disabled for both specified devices, Access device {args.access_device} and PE device {args.pe_device}.")
+        print("Are you sure these are the correct devices?\nCannot proceed with configuration.")
+        return
+
+    if not access_device_info.get('customer_provisioning', False):
+        print(f"Error: Customer provisioning is disabled for this specified Access device {args.access_device}.")
+        print("Are you sure this is the correct device?\nCannot proceed with configuration.")        
+        return
+
+    if not pe_device_info.get('customer_provisioning', False):
+        print(f"Error: Customer provisioning is disabled for this specified PE device {args.pe_device}.")
+        print("Are you sure this is the correct device?\nCannot proceed with configuration.")
         return
     
     if access_device_info['device_type'] == 'cisco_xe' and args.service_type == 'p2p':
