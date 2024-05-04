@@ -244,42 +244,58 @@ def main():
     """Rendering configurations based on device types and service types."""
     if access_device_info['device_type'] == 'cisco_xe' and args.service_type == 'p2p':
         access_template_name = "p2p_cisco_xe_to_generic.j2"
+        access_template_name_remove = "p2p_cisco_xe_to_generic_remove.j2"
     elif access_device_info['device_type'] == 'cisco_xe' and args.service_type == 'p2mp':
         access_template_name = "p2mp_cisco_xe_to_generic.j2"
+        access_template_name_remove = "p2mp_cisco_xe_to_generic_remove.j2"
     elif access_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2p':
         access_template_name = "p2p_huawei_vrp_to_generic.j2"
+        access_template_name_remove = "p2p_huawei_vrp_to_generic_remove.j2"
     elif access_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2mp':
         access_template_name = "p2mp_huawei_vrp_to_generic.j2"
+        access_template_name_remove = "p2mp_huawei_vrp_to_generic_remove.j2"
     elif access_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2p':
         access_template_name = "p2p_huawei_vrp_xpl_to_generic.j2"
+        access_template_name_remove = "p2p_huawei_vrp_xpl_to_generic_remove.j2"
     elif access_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2mp':
         access_template_name = "p2mp_huawei_vrp_xpl_to_generic.j2"
+        access_template_name_remove = "p2mp_huawei_vrp_xpl_to_generic_remove.j2"
     else:
         print(f"Unsupported Access device type: {access_device_info['device_type']}")
         return
 
     if pe_device_info['device_type'] == 'cisco_xr' and args.service_type == 'p2p':
         pe_template_name = "p2p_cisco_xr_to_generic.j2"
+        pe_template_name_remove = "p2p_cisco_xr_to_generic_remove.j2"
     elif pe_device_info['device_type'] == 'cisco_xr' and args.service_type == 'p2mp':
         pe_template_name = "p2mp_cisco_xr_to_generic.j2"
+        pe_template_name_remove = "p2mp_cisco_xr_to_generic_remove.j2"
     elif pe_device_info['device_type'] == 'juniper_junos' and args.service_type == 'p2p':
         pe_template_name = "p2p_juniper_junos_to_generic.j2"
+        pe_template_name_remove = "p2p_juniper_junos_to_generic_remove.j2"
     elif pe_device_info['device_type'] == 'juniper_junos' and args.service_type == 'p2mp':
         pe_template_name = "p2mp_juniper_junos_to_generic.j2"
+        pe_template_name_remove = "p2mp_juniper_junos_to_generic_remove.j2"
     elif pe_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2p':
         pe_template_name = "p2p_huawei_vrp_to_generic.j2"
+        pe_template_name_remove = "p2p_huawei_vrp_to_generic_remove.j2"
     elif pe_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2mp':
         pe_template_name = "p2mp_huawei_vrp_to_generic.j2"
+        pe_template_name_remove = "p2mp_huawei_vrp_to_generic_remove.j2"
     elif pe_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2p':
         pe_template_name = "p2p_huawei_vrp_xpl_to_generic.j2"
+        pe_template_name_remove = "p2p_huawei_vrp_xpl_to_generic_remove.j2"
     elif pe_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2mp':
         pe_template_name = "p2mp_huawei_vrp_xpl_to_generic.j2"
+        pe_template_name_remove = "p2mp_huawei_vrp_xpl_to_generic_remove.j2"
     else:
         print(f"Unsupported PE device type: {pe_device_info['device_type']}")
         return
 
-    print(f"Using template: {access_template_name} for Access device configuration")
-    print(f"Using template: {pe_template_name} for PE device configuration")
+    print(f"Using template: {access_template_name_remove} to remove any previous configuration for this customer from the Access device")
+    print(f"Using template: {pe_template_name_remove} to remove any previous configuration for this customer from the PE device")
+    print(f"Using template: {access_template_name} for Access device new configuration")
+    print(f"Using template: {pe_template_name} for PE device new configuration")
 
     """Context dictionary to pass to the Jinja2 templates."""
     context = {
@@ -305,10 +321,16 @@ def main():
     }
 
     try:
+        access_rendered_config_remove = render_template(access_template_name_remove, context) + '\n'
+        pe_rendered_config_remove = render_template(pe_template_name_remove, context) + '\n'
         access_rendered_config = render_template(access_template_name, context) + '\n'
         pe_rendered_config = render_template(pe_template_name, context) + '\n'
+        access_remove_output_file = f"{args.customer_name}_{args.access_device}_access_config_remove.txt"
+        pe_remove_output_file = f"{args.customer_name}_{args.pe_device}_pe_config_remove.txt"
         access_output_file = f"{args.customer_name}_{args.access_device}_access_config.txt"
         pe_output_file = f"{args.customer_name}_{args.pe_device}_pe_config.txt"
+        write_to_file('generated_configs', access_remove_output_file, access_rendered_config_remove)
+        write_to_file('generated_configs', pe_remove_output_file, pe_rendered_config_remove)
         write_to_file('generated_configs', access_output_file, access_rendered_config)
         write_to_file('generated_configs', pe_output_file, pe_rendered_config)
         delete_error_log('generated_configs', args.customer_name)
