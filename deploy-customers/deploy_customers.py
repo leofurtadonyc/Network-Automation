@@ -73,7 +73,7 @@ def write_audit_log(customer_name, audit_entries):
             file.write(f"Deployed config file: {entry['deployed_config_path']}\n")
             file.write(f"Deployment result: {entry['result']}\n")
             file.write(f"Activation status: {entry['activation_status']}\n")
-            file.write("Configuration differences:\n")
+            file.write("Configuration differences:\n\n")
             file.write(entry['diff_results'] + "\n")
             file.write("--------------------------------------------------\n")
     
@@ -148,7 +148,7 @@ def cleanup_generated_configs(customer_name, directory='generated_configs'):
             os.remove(os.path.join(directory, filename))
             print(f"Removed {filename} from {directory} after successful deployment.")
 
-def deploy_config(username, password, customer_name, access_device, pe_device):
+def deploy_config(username, password, customer_name, access_device, pe_device, deactivate):
     """Deploy configurations to access and PE devices for a customer, ensuring both device configurations are correct."""
     error_data = check_for_error_logs(customer_name)
     if error_data:
@@ -170,95 +170,152 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
     pe_config_path = f"generated_configs/{customer_name}_{pe_device}_pe_config.txt"
 
     if not os.path.exists(access_remove_config_path) or not os.path.exists(pe_remove_config_path):
-        return "Configuration removal file(s) for specified devices not found. Please verify and try again."
+        return "Configuration file(s) for specified devices not found. Please verify and try again."
 
     if not os.path.exists(access_config_path) or not os.path.exists(pe_config_path):
         return "Configuration file(s) for specified devices not found. Please verify and try again."
 
-    try:
-        remove_configurations = {
-            access_device: (access_remove_config_path, 'access'),
-            pe_device: (pe_remove_config_path, 'pe')
-        }
-        configurations = {
-            access_device: (access_config_path, 'access'),
-            pe_device: (pe_config_path, 'pe')
-        }
-        all_successful = True
+    if not deactivate:
+        try:
+            remove_configurations = {
+                access_device: (access_remove_config_path, 'access'),
+                pe_device: (pe_remove_config_path, 'pe')
+            }
+            configurations = {
+                access_device: (access_config_path, 'access'),
+                pe_device: (pe_config_path, 'pe')
+            }
+            all_successful = True
 
-        for device_name, (remove_config_path, config_suffix) in remove_configurations.items() :
-            device = devices.get(device_name)
-            if not device:
-                return f"Device {device_name} not found in device configuration."
+            for device_name, (remove_config_path, config_suffix) in remove_configurations.items() :
+                device = devices.get(device_name)
+                if not device:
+                    return f"Device {device_name} not found in device configuration."
 
-            device_type = device['device_type']
-            ip_address = device['ip_address']
-            configuration = open(remove_config_path, 'r').read()
-            start_time = datetime.datetime.now()
+                device_type = device['device_type']
+                ip_address = device['ip_address']
+                configuration = open(remove_config_path, 'r').read()
+                start_time = datetime.datetime.now()
 
-            ssh_client.connect(ip_address, username=username, password=password, timeout=10)
-            channel = ssh_client.invoke_shell()
-            deployment_commands = {
-                'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
-                'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
-                'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
-                'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
-            }.get(device_type, [])
+                ssh_client.connect(ip_address, username=username, password=password, timeout=10)
+                channel = ssh_client.invoke_shell()
+                deployment_commands = {
+                    'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
+                    'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
+                    'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
+                    'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
+                }.get(device_type, [])
 
-            for command in deployment_commands:
-                channel.send(command + '\n')
-                time.sleep(1)
+                for command in deployment_commands:
+                    channel.send(command + '\n')
+                    time.sleep(1)
 
-            ssh_client.close()
-            end_time = datetime.datetime.now()
+                ssh_client.close()
+                end_time = datetime.datetime.now()
 
-        for device_name, (config_path, config_suffix) in configurations.items() :
-            device = devices.get(device_name)
-            if not device:
-                return f"Device {device_name} not found in device configuration."
+            for device_name, (config_path, config_suffix) in configurations.items() :
+                device = devices.get(device_name)
+                if not device:
+                    return f"Device {device_name} not found in device configuration."
 
-            latest_config_path = find_latest_config(customer_name, device_name)
-            activation_status = "First-time activation" if not latest_config_path else "Re-activation"
+                latest_config_path = find_latest_config(customer_name, device_name)
+                activation_status = "First-time activation" if not latest_config_path else "Re-activation"
 
-            device_type = device['device_type']
-            ip_address = device['ip_address']
-            configuration = open(config_path, 'r').read()
-            start_time = datetime.datetime.now()
-            deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
-            diff_results = compare_configurations(configuration, latest_config_path) if latest_config_path else "No previous configuration to compare."
+                device_type = device['device_type']
+                ip_address = device['ip_address']
+                configuration = open(config_path, 'r').read()
+                start_time = datetime.datetime.now()
+                deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
+                diff_results = compare_configurations(configuration, latest_config_path) if latest_config_path else "No previous configuration to compare."
 
-            ssh_client.connect(ip_address, username=username, password=password, timeout=10)
-            channel = ssh_client.invoke_shell()
-            deployment_commands = {
-                'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
-                'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
-                'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
-                'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
-            }.get(device_type, [])
+                ssh_client.connect(ip_address, username=username, password=password, timeout=10)
+                channel = ssh_client.invoke_shell()
+                deployment_commands = {
+                    'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
+                    'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
+                    'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
+                    'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
+                }.get(device_type, [])
 
-            for command in deployment_commands:
-                channel.send(command + '\n')
-                time.sleep(1)
+                for command in deployment_commands:
+                    channel.send(command + '\n')
+                    time.sleep(1)
 
-            ssh_client.close()
-            end_time = datetime.datetime.now()
-            result = "Success"
-            audit_entries.append({
-                'start_time': start_time,
-                'end_time': end_time,
-                'device_name': device_name,
-                'device_type': device_type,
-                'generated_config_path': config_path,
-                'deployed_config_path': deployed_config_path,
-                'result': result,
-                'diff_results': diff_results,
-                'activation_status': activation_status,
-                'operator': operator,
-                'operator_ip': operator_ip
-            })
-    except Exception as e:
-        all_successful = False
-        print(f"Deployment failed with an exception: {str(e)}")
+                ssh_client.close()
+                end_time = datetime.datetime.now()
+                result = "Success"
+                audit_entries.append({
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'device_name': device_name,
+                    'device_type': device_type,
+                    'generated_config_path': config_path,
+                    'deployed_config_path': deployed_config_path,
+                    'result': result,
+                    'diff_results': diff_results,
+                    'activation_status': activation_status,
+                    'operator': operator,
+                    'operator_ip': operator_ip
+                })
+        except Exception as e:
+            all_successful = False
+            print(f"Deployment failed with an exception: {str(e)}")
+
+    if deactivate:
+        try:
+            remove_configurations = {
+                access_device: (access_remove_config_path, 'access'),
+                pe_device: (pe_remove_config_path, 'pe')
+            }
+            all_successful = True
+
+            for device_name, (remove_config_path, config_suffix) in remove_configurations.items() :
+                device = devices.get(device_name)
+                if not device:
+                    return f"Device {device_name} not found in device configuration."
+
+                latest_config_path = find_latest_config(customer_name, device_name)
+                activation_status = "No prior configuration to remove" if not latest_config_path else "Deactivating and removing the customer..."
+
+                device_type = device['device_type']
+                ip_address = device['ip_address']
+                configuration = open(remove_config_path, 'r').read()
+                start_time = datetime.datetime.now()
+                deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
+                diff_results = compare_configurations(configuration, latest_config_path) if latest_config_path else "No previous configuration to compare."
+
+                ssh_client.connect(ip_address, username=username, password=password, timeout=10)
+                channel = ssh_client.invoke_shell()
+                deployment_commands = {
+                    'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
+                    'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
+                    'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
+                    'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
+                }.get(device_type, [])
+
+                for command in deployment_commands:
+                    channel.send(command + '\n')
+                    time.sleep(1)
+
+                ssh_client.close()
+                end_time = datetime.datetime.now()
+                result = "Success"
+                audit_entries.append({
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'device_name': device_name,
+                    'device_type': device_type,
+                    'generated_config_path': remove_config_path,
+                    'deployed_config_path': deployed_config_path,
+                    'result': result,
+                    'diff_results': diff_results,
+                    'activation_status': activation_status,
+                    'operator': operator,
+                    'operator_ip': operator_ip
+                })
+        except Exception as e:
+            all_successful = False
+            print(f"Deployment failed with an exception: {str(e)}")
 
     if all_successful:
         audit_path = write_audit_log(customer_name, audit_entries)
@@ -274,10 +331,11 @@ def main():
     parser.add_argument("--password", required=True, help="Password for SSH and credential verification", type=str)
     parser.add_argument("--access-device", required=True, help="Hostname of the access device")
     parser.add_argument("--pe-device", required=True, help="Hostname of the PE device")
+    parser.add_argument("--deactivate", action='store_true', help="Deploy only the removal configurations")
 
     args = parser.parse_args()
 
-    result = deploy_config(args.username, args.password, args.customer_name, args.access_device, args.pe_device)
+    result = deploy_config(args.username, args.password, args.customer_name, args.access_device, args.pe_device, args.deactivate)
     print(result)
 
 if __name__ == "__main__":
