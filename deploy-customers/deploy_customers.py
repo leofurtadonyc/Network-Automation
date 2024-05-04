@@ -107,14 +107,18 @@ def find_latest_config(customer_name, device_name, deployed_dir='deployed_config
 
 
 def compare_configurations(new_config, old_config_path):
-    """Generate a diff between the new configuration and the most recent configuration."""
+    """Generate a diff between the new configuration and the most recent configuration after normalizing the content."""
     if not old_config_path or not os.path.exists(old_config_path):
-        return None
+        return "No previous configuration to compare."
+
     with open(old_config_path, 'r') as file:
-        old_config = file.readlines()
-    new_config = new_config.splitlines()
+        old_config = [line.strip() for line in file if line.strip()]
+
+    new_config = [line.strip() for line in new_config.splitlines() if line.strip()]
+
     diff = list(difflib.unified_diff(old_config, new_config, fromfile='old_config', tofile='new_config', lineterm=''))
     return '\n'.join(diff) if diff else "No changes detected."
+
 
 def save_deployed_config(customer_name, device_name, configuration):
     """Saves the deployed configuration to a file."""
@@ -160,19 +164,55 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     audit_entries = []
 
+    access_remove_config_path = f"generated_configs/{customer_name}_{access_device}_access_config_remove.txt"
+    pe_remove_config_path = f"generated_configs/{customer_name}_{pe_device}_pe_config_remove.txt"
     access_config_path = f"generated_configs/{customer_name}_{access_device}_access_config.txt"
     pe_config_path = f"generated_configs/{customer_name}_{pe_device}_pe_config.txt"
+
+    if not os.path.exists(access_remove_config_path) or not os.path.exists(pe_remove_config_path):
+        return "Configuration removal file(s) for specified devices not found. Please verify and try again."
 
     if not os.path.exists(access_config_path) or not os.path.exists(pe_config_path):
         return "Configuration file(s) for specified devices not found. Please verify and try again."
 
     try:
+        remove_configurations = {
+            access_device: (access_remove_config_path, 'access'),
+            pe_device: (pe_remove_config_path, 'pe')
+        }
         configurations = {
             access_device: (access_config_path, 'access'),
             pe_device: (pe_config_path, 'pe')
         }
         all_successful = True
-        for device_name, (config_path, config_suffix) in configurations.items():
+
+        for device_name, (remove_config_path, config_suffix) in remove_configurations.items() :
+            device = devices.get(device_name)
+            if not device:
+                return f"Device {device_name} not found in device configuration."
+
+            device_type = device['device_type']
+            ip_address = device['ip_address']
+            configuration = open(remove_config_path, 'r').read()
+            start_time = datetime.datetime.now()
+
+            ssh_client.connect(ip_address, username=username, password=password, timeout=10)
+            channel = ssh_client.invoke_shell()
+            deployment_commands = {
+                'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
+                'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
+                'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
+                'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
+            }.get(device_type, [])
+
+            for command in deployment_commands:
+                channel.send(command + '\n')
+                time.sleep(1)
+
+            ssh_client.close()
+            end_time = datetime.datetime.now()
+
+        for device_name, (config_path, config_suffix) in configurations.items() :
             device = devices.get(device_name)
             if not device:
                 return f"Device {device_name} not found in device configuration."
