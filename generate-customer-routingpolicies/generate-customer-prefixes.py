@@ -11,23 +11,23 @@ def valid_customer_name(name):
     raise argparse.ArgumentTypeError("Customer name must be 1-20 characters long, alphanumeric, no spaces.")
 
 def expand_ipv4_as_set(as_set):
-    """Use bgpq3 to expand the AS-SET for IPv4 route objects."""
-    command = ['bgpq3', '-j', as_set]
-    return run_bgpq3(command)
+    """Use bgpq4 to expand the AS-SET for IPv4 route objects."""
+    command = ['bgpq4', '-j', as_set]
+    return run_bgpq4(command)
 
 def expand_ipv6_as_set(as_set):
-    """Use bgpq3 to expand the AS-SET for IPv6 route objects."""
-    command = ['bgpq3', '-j', '-6', as_set]
-    return run_bgpq3(command)
+    """Use bgpq4 to expand the AS-SET for IPv6 route objects."""
+    command = ['bgpq4', '-j', '-6', as_set]
+    return run_bgpq4(command)
 
-def run_bgpq3(command):
-    """Executes the bgpq3 command and handles output."""
+def run_bgpq4(command):
+    """Executes the bgpq4 command and handles output."""
     try:
         output = subprocess.run(command, capture_output=True, text=True)
         if output.stderr:
-            print("Error output from bgpq3:", output.stderr)
+            print("Error output from bgpq4:", output.stderr)
         if not output.stdout:
-            print("No output returned from bgpq3")
+            print("No output returned from bgpq4")
             return None
         return output.stdout
     except subprocess.CalledProcessError as e:
@@ -111,28 +111,28 @@ def generate_commands(vendor, as_number, customer_name, prefixes, is_ipv6=False)
 
     return commands
 
-def run_bgpq3_aspath(asn, as_set, customer_name):
-    """Generates AS-path filters using bgpq3 based on ASN and AS-SET."""
+def run_bgpq4_aspath(asn, as_set, customer_name):
+    """Generates AS-path filters using bgpq4 based on ASN and AS-SET."""
     commands = {}
     base_label = f"AS{asn}:{customer_name}_ASPATH"
-    bgpq3_commands = {
-        'cisco_xe': ["bgpq3", "-l", base_label, "-3f", str(asn), as_set],
-        'cisco_xr': ["bgpq3", "-l", base_label, "-X3f", str(asn), as_set],
-        'juniper_junos': ["bgpq3", "-l", base_label, "-J3f", str(asn), as_set],
-        'huawei_vrp': ["bgpq3", "-l", base_label, "-U3f", str(asn), as_set],
-        'nokia_sros': ["bgpq3", "-l", base_label, "-N3f", str(asn), as_set]
+    bgpq4_commands = {
+        'cisco_xe': ["bgpq4", "-l", base_label, "-3f", str(asn), as_set],
+        'cisco_xr': ["bgpq4", "-l", base_label, "-X3f", str(asn), as_set],
+        'juniper_junos': ["bgpq4", "-l", base_label, "-J3f", str(asn), as_set],
+        'huawei_vrp': ["bgpq4", "-l", base_label, "-U3f", str(asn), as_set],
+        'nokia_sros': ["bgpq4", "-l", base_label, "-N3f", str(asn), as_set]
     }
 
-    for vendor, cmd in bgpq3_commands.items():
+    for vendor, cmd in bgpq4_commands.items():
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.stderr:
-                print(f"Error output from bgpq3 for {vendor}: {result.stderr}")
+                print(f"Error output from bgpq4 for {vendor}: {result.stderr}")
             if result.stdout:
                 # Assume the output is directly usable for your purposes
                 commands[vendor] = result.stdout.strip().split('\n')
         except subprocess.CalledProcessError as e:
-            print(f"Failed to execute bgpq3 for {vendor}: {e}")
+            print(f"Failed to execute bgpq4 for {vendor}: {e}")
     
     return commands
 
@@ -154,7 +154,7 @@ def main():
                     "IP AS-Path access-lists in multivendor environments. "
                     "It supports the syntax of Cisco IOS, Cisco IOS XE, Cisco IOS XR, Huawei (including XPL), and Nokia SR "
                     "but it can be easily extended to support other syntaxes as well. "
-                    "It requires bgpq3 in order to produce both the IPv4/6 prefix lists and AS-Path access-lists.",
+                    "It requires bgpq4 in order to produce both the IPv4/6 prefix lists and AS-Path access-lists.",
         epilog="Example usage: python generate-routingpolicy-prefixes.py 16509 AS16509:AS-AMAZON AMAZON",
         formatter_class=argparse.RawDescriptionHelpFormatter
         )
@@ -185,8 +185,8 @@ def main():
             write_to_file(folder, ipv6_filename, ipv6_commands)
             print(f"IPv6 commands for {vendor} written to {folder}/{ipv6_filename}")
 
-    # Generate AS-path commands using bgpq3 with specified labels
-    as_path_data = run_bgpq3_aspath(args.asn, args.as_set, args.customer_name)
+    # Generate AS-path commands using bgpq4 with specified labels
+    as_path_data = run_bgpq4_aspath(args.asn, args.as_set, args.customer_name)
     folder = 'generated_prefixes'
     write_vendor_commands(folder, args.asn, args.customer_name, as_path_data)
 
