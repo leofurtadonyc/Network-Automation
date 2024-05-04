@@ -1,0 +1,41 @@
+{
+  "customer": {
+    "name": "LEONARDOFURTADO",
+    "service_type": "p2p",
+    "devices": {
+      "access": {
+        "name": "a-cisco-01",
+        "interface": "GigabitEthernet1"
+      },
+      "pe": {
+        "name": "pe-juniper-01"
+      }
+    },
+    "configuration": {
+      "circuit_id": 20,
+      "qos": {
+        "input": 500,
+        "output": 500
+      },
+      "vlan": {
+        "id": 20,
+        "outer_id": 600
+      },
+      "pseudowire_id": 20,
+      "irb": {
+        "ipv4_address": "172.16.1.1/30",
+        "ipv6_address": "2001:db8:1234:1234::1/127"
+      },
+      "lan": {
+        "ipv4": {
+          "network": "172.17.0.0/16",
+          "next_hop": "172.16.1.2"
+        },
+        "ipv6": {
+          "network": "2001:db8:2222::/48",
+          "next_hop": "2001:db8:1234:1234::2"
+        }
+      }
+    }
+  }
+}

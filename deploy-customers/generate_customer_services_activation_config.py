@@ -10,19 +10,27 @@ import re
 from jinja2 import Environment, FileSystemLoader
 
 def load_yaml(yaml_path):
-    """Load data from a YAML file."""
+    """Load device data from a YAML file."""
     with open(yaml_path, 'r') as file:
         data = yaml.safe_load(file)
         return data['devices']
 
-def load_recipe_yaml(yaml_path):
-    """Load intended customer's configuration data from a YAML recipe file."""
-    with open(yaml_path, 'r') as file:
-        data = yaml.safe_load(file)
-        return data
+def load_recipe(file_path):
+    """Load intended customer's configuration data from a YAML or JSON recipe file."""
+    _, file_extension = os.path.splitext(file_path)
+    if file_extension in ['.yaml', '.yml']:
+        with open(file_path, 'r') as file:
+            data = yaml.safe_load(file)
+    elif file_extension == '.json':
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+    else:
+        raise ValueError("Unsupported file type. Please provide a YAML or JSON file.")
+    return data
+
 
 def render_template(template_name, context):
-    """Render configuration from Jinja2 templates."""
+    """Render customer configuration from Jinja2 templates."""
     env = Environment(loader=FileSystemLoader('templates/'))
     template = env.get_template(template_name)
     return template.render(context)
@@ -113,6 +121,7 @@ def delete_error_log(directory, customer_name):
         print(f"Deleted any old error log to unblock deployment: {error_path}")
 
 def main():
+    """Main function to parse arguments, load device data, and render configurations."""
     parser = argparse.ArgumentParser(description="Generate service provisioning configurations for network devices.")
     parser.add_argument("--customer-name", type=str, help="Customer name for the service.")
     parser.add_argument("--access-device", type=str, help="Hostname of the access device.")
@@ -132,12 +141,13 @@ def main():
     parser.add_argument("--pe-device", type=str, help="Hostname of the Provider Edge device.")
     parser.add_argument("--service-type", choices=['p2p', 'p2mp'], help="Service type: point-to-point or point-to-multipoint.")
     parser.add_argument("--interactive", action='store_true', help="Run the script in interactive mode to gather input from the operator.")
-    parser.add_argument("--recipe", type=str, help="Path to a YAML file containing the recipe for customer service activation.")
+    parser.add_argument("--recipe", type=str, help="Path to a YAML or JSON file containing the recipe for customer service activation.")
 
     args = parser.parse_args()
-
+    
+    """If a YAML or JSON recipe file is provided, load the data from that file."""
     if args.recipe:
-        recipe_data = load_recipe_yaml(args.recipe)
+        recipe_data = load_recipe(args.recipe)
         args.customer_name = recipe_data['customer']['name']
         args.access_device = recipe_data['customer']['devices']['access']['name']
         args.access_interface = recipe_data['customer']['devices']['access']['interface']
@@ -165,7 +175,7 @@ def main():
     access_device_info = devices_config.get(args.access_device)
     pe_device_info = devices_config.get(args.pe_device)
 
-    """If neither Access or PE device is found in the YAML file, print an error message and exit."""
+    """If neither Access or PE device is found in the network_devices YAML file, print an error message and exit."""
     if not access_device_info or not pe_device_info:
         print("Error: Device information is missing or incorrect in the YAML file.")
         print("Please check the devices names.")
@@ -271,6 +281,7 @@ def main():
     print(f"Using template: {access_template_name} for Access device configuration")
     print(f"Using template: {pe_template_name} for PE device configuration")
 
+    """Context dictionary to pass to the Jinja2 templates."""
     context = {
         'customer_name': args.customer_name,
         'interface_name': args.access_interface,
