@@ -15,6 +15,12 @@ def load_yaml(yaml_path):
         data = yaml.safe_load(file)
         return data['devices']
 
+def load_recipe_yaml(yaml_path):
+    """Load intended customer's configuration data from a YAML recipe file."""
+    with open(yaml_path, 'r') as file:
+        data = yaml.safe_load(file)
+        return data
+
 def render_template(template_name, context):
     """Render configuration from Jinja2 templates."""
     env = Environment(loader=FileSystemLoader('templates/'))
@@ -126,10 +132,31 @@ def main():
     parser.add_argument("--pe-device", type=str, help="Hostname of the Provider Edge device.")
     parser.add_argument("--service-type", choices=['p2p', 'p2mp'], help="Service type: point-to-point or point-to-multipoint.")
     parser.add_argument("--interactive", action='store_true', help="Run the script in interactive mode to gather input from the operator.")
+    parser.add_argument("--recipe", type=str, help="Path to a YAML file containing the recipe for customer service activation.")
 
     args = parser.parse_args()
 
-    if args.interactive:
+    if args.recipe:
+        recipe_data = load_recipe_yaml(args.recipe)
+        args.customer_name = recipe_data['customer']['name']
+        args.access_device = recipe_data['customer']['devices']['access']['name']
+        args.access_interface = recipe_data['customer']['devices']['access']['interface']
+        args.circuit_id = recipe_data['customer']['configuration']['circuit_id']
+        args.qos_input = recipe_data['customer']['configuration']['qos']['input']
+        args.qos_output = recipe_data['customer']['configuration']['qos']['output']
+        args.vlan_id = recipe_data['customer']['configuration']['vlan']['id']
+        args.vlan_id_outer = recipe_data['customer']['configuration']['vlan']['outer_id']
+        args.pw_id = recipe_data['customer']['configuration']['pseudowire_id']
+        args.irb_ipaddr = recipe_data['customer']['configuration']['irb']['ipv4_address']
+        args.irb_ipv6addr = recipe_data['customer']['configuration']['irb']['ipv6_address']
+        args.ipv4_lan = recipe_data['customer']['configuration']['lan']['ipv4']['network']
+        args.ipv4_nexthop = recipe_data['customer']['configuration']['lan']['ipv4']['next_hop']
+        args.ipv6_lan = recipe_data['customer']['configuration']['lan']['ipv6']['network']
+        args.ipv6_nexthop = recipe_data['customer']['configuration']['lan']['ipv6']['next_hop']
+        args.pe_device = recipe_data['customer']['devices']['pe']['name']
+        args.service_type = recipe_data['customer']['service_type']
+
+    elif args.interactive:
         args.customer_name, args.access_device, args.access_interface, args.circuit_id, args.qos_input, args.qos_output, args.vlan_id, args.vlan_id_outer, args.pw_id, args.irb_ipaddr, args.irb_ipv6addr, args.ipv4_lan, args.ipv6_lan, args.pe_device, args.service_type = collect_inputs()
 
     start_time = time.time()
