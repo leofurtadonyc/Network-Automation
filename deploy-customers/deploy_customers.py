@@ -192,7 +192,7 @@ def deploy_config(username, password, customer_name, access_device, pe_device):
             deployment_commands = {
                 'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
                 'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
-                'juniper_junos': ['edit', configuration, 'commit and-quit'],
+                'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
                 'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
             }.get(device_type, [])
 
