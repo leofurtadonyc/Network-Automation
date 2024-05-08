@@ -321,20 +321,51 @@ def main():
     }
 
     try:
+        """Thanks to a refactoring of the deploy_customers.py script, I had to mess with this section to address deactivation and other scenarios..."""
+        """The following lines render the configurations for the customer service provisioning and write them to files."""
         access_rendered_config_remove = render_template(access_template_name_remove, context) + '\n'
         pe_rendered_config_remove = render_template(pe_template_name_remove, context) + '\n'
         access_rendered_config = render_template(access_template_name, context) + '\n'
         pe_rendered_config = render_template(pe_template_name, context) + '\n'
+
+        """Output file names for removal configurations"""
         access_remove_output_file = f"{args.customer_name}_{args.access_device}_access_config_remove.txt"
         pe_remove_output_file = f"{args.customer_name}_{args.pe_device}_pe_config_remove.txt"
+
+        """ Output file names for activation configurations"""
         access_output_file = f"{args.customer_name}_{args.access_device}_access_config.txt"
         pe_output_file = f"{args.customer_name}_{args.pe_device}_pe_config.txt"
+
+        """ Write removal configurations to files """
         write_to_file('generated_configs', access_remove_output_file, access_rendered_config_remove)
         write_to_file('generated_configs', pe_remove_output_file, pe_rendered_config_remove)
+
+        """ Write activation configurations to files """
         write_to_file('generated_configs', access_output_file, access_rendered_config)
         write_to_file('generated_configs', pe_output_file, pe_rendered_config)
+
+        """ Handles deactivation scenario by generating specific deactivate files """
+        access_deactivate_output_file_remove = f"{args.customer_name}_{args.access_device}_remove_config_remove.txt"
+        pe_deactivate_output_file_remove = f"{args.customer_name}_{args.pe_device}_remove_config_remove.txt"
+        access_deactivate_output_file = f"{args.customer_name}_{args.access_device}_remove_config.txt"
+        pe_deactivate_output_file = f"{args.customer_name}_{args.pe_device}_remove_config.txt"
+        
+        """ Render the deactivate configurations (similar to remove configurations) """
+        access_rendered_config_deactivate_remove = render_template(access_template_name_remove, context) + '\n'
+        pe_rendered_config_deactivate_remove = render_template(pe_template_name_remove, context) + '\n'
+        access_rendered_config_deactivate = render_template(pe_template_name_remove, context) + '\n'
+        pe_rendered_config_deactivate = render_template(pe_template_name_remove, context) + '\n'
+
+        """ Write deactivate configurations to files """
+        write_to_file('generated_configs', access_deactivate_output_file_remove, access_rendered_config_deactivate_remove)
+        write_to_file('generated_configs', pe_deactivate_output_file_remove, pe_rendered_config_deactivate_remove)
+        write_to_file('generated_configs', access_deactivate_output_file, access_rendered_config_deactivate)
+        write_to_file('generated_configs', pe_deactivate_output_file, pe_rendered_config_deactivate)
+
+        """ Delete any error log associated with the customer """
         delete_error_log('generated_configs', args.customer_name)
         print("Configuration generation completed successfully.")
+
     except Exception as e:
         log_error('generated_configs', args.customer_name,
                   f"Failed to generate configurations due to: {str(e)}",
