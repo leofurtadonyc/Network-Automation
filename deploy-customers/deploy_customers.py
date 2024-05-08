@@ -11,35 +11,34 @@ import time
 import difflib
 import getpass
 import socket
+from collections import defaultdict
+from typing import Optional, Dict, Any, List
 
-def get_current_user():
+def get_current_user() -> str:
     """Retrieve the current user's username for audit logging."""
     return getpass.getuser()
 
-def get_ip_address():
+def get_ip_address() -> str:
     """Retrieve the IP address of the current machine for audit logging."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # It doesn't even have to be reachable
         s.connect(('10.254.254.254', 1))
-        IP = s.getsockname()[0]
+        return s.getsockname()[0]
     except Exception:
-        IP = 'N/A'
+        return 'N/A'
     finally:
         s.close()
-    return IP
 
-def load_devices(file_path='devices/network_devices.yaml'):
+def load_devices(file_path: str = 'devices/network_devices.yaml') -> Dict[str, Any]:
     """Load network devices from a YAML file."""
     try:
         with open(file_path, 'r') as file:
-            devices_dict = yaml.safe_load(file)
-            return devices_dict['devices']
+            return yaml.safe_load(file).get('devices', {})
     except FileNotFoundError:
         print("Devices file not found.")
-        return yaml.safe_load(file).get('devices', {})
+        return {}
 
-def verify_user(username, password, credentials_file='devices/usercredentials.sec'):
+def verify_user(username: str, password: str, credentials_file: str = 'devices/usercredentials.sec') -> bool:
     """Verify user credentials against a stored file."""
     try:
         with open(credentials_file, 'r') as file:
@@ -47,282 +46,203 @@ def verify_user(username, password, credentials_file='devices/usercredentials.se
                 stored_username, hashed_password = line.strip().split(':')
                 if stored_username == username and bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
                     return True
+        return False
     except FileNotFoundError:
         print("Credentials file not found.")
-    return False
+        return False
 
-def write_audit_log(customer_name, audit_entries):
+def create_audit_entry(operator, operator_ip, **kwargs):
+    entry = {
+        'operator': operator,
+        'operator_ip': operator_ip
+    }
+    entry.update(kwargs)
+    return entry
+
+def write_audit_log(customer_name: str, audit_entries: List[Dict[str, Any]]) -> str:
     """Write detailed audit log including configuration differences."""
     audit_dir = 'audit_logs'
-    if not os.path.exists(audit_dir):
-        os.makedirs(audit_dir)
-    
+    os.makedirs(audit_dir, exist_ok=True)
     audit_file_name = f"{customer_name}_config_deploy_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_audit.txt"
     audit_file_path = os.path.join(audit_dir, audit_file_name)
 
     with open(audit_file_path, 'w') as file:
-        """Write audit log entries to file."""
-        file.write(f"Operator: {audit_entries[0]['operator']} from IP {audit_entries[0]['operator_ip']}\n")
+        file.write(f"Operator: {audit_entries[0].get('operator', 'Unknown Operator')} from IP {audit_entries[0].get('operator_ip', 'Unknown IP')}\n")
+        file.write(f"Completed at: {audit_entries[0].get('timestamp')}\n")
         file.write("--------------------------------------------------\n")
         for entry in audit_entries:
-            file.write(f"Deployment start: {entry['start_time'].strftime('%Y-%m-%d %H:%M:%S')}\n")
-            file.write(f"Deployment end: {entry['end_time'].strftime('%Y-%m-%d %H:%M:%S')}\n")
-            file.write(f"Deployment duration: {(entry['end_time'] - entry['start_time']).seconds} seconds\n")
-            file.write(f"Device: {entry['device_name']} ({entry['device_type']})\n")
-            file.write(f"Generated config file: {entry['generated_config_path']}\n")
-            file.write(f"Deployed config file: {entry['deployed_config_path']}\n")
-            file.write(f"Deployment result: {entry['result']}\n")
-            file.write(f"Activation status: {entry['activation_status']}\n")
-            file.write("Configuration differences:\n\n")
-            file.write(entry['diff_results'] + "\n")
+            file.write(f"Duration of execution: {entry.get('elapsed_time')}\n")
+            file.write(f"Device: {entry.get('device_name', 'Unknown Device')} ({entry.get('device_type', 'unknown')})\n")
+            file.write(f"Generated config file: {entry.get('configuration_path', 'No Path Available')}\n")
+            file.write(f"Deployed config file: {entry.get('deployed_config_path', 'No Path Available')}\n")
+            file.write(f"Deployment result: {'Success' if 'diff_results' in entry else 'Failure'}\n")
+
+            diff = entry.get('diff_results', 'No changes detected.')
+            if "No previous configuration to compare." in diff:
+                activation_status = "First-time customer activation (no previous configuration found)."
+            elif "No changes detected." in diff:
+                activation_status = "Re-activation"
+            else:
+                activation_status = "Re-activation with service changes"
+
+            file.write(f"Activation status: {activation_status}\n")
+            file.write("Configuration differences:\n")
+            file.write(f"{diff}\n")
             file.write("--------------------------------------------------\n")
-    
+
     return audit_file_path
 
-def find_latest_config(customer_name, device_name, deployed_dir='deployed_configs'):
+def find_latest_config(customer_name: str, device_name: str, deployed_dir: str = 'deployed_configs') -> Optional[str]:
     """Find the most recent configuration file for a customer per device type."""
     latest_file = None
     latest_time = None
 
-    try:
-        for file in os.listdir(deployed_dir):
-            if file.startswith(f"{customer_name}_{device_name}") and file.endswith('.txt'):
-                try:
-                    parts = file.split('_')
-                    date_part = parts[-2]
-                    time_part = parts[-1].split('.')[0]
-                    full_datetime_str = f"{date_part}_{time_part}"
-                    file_time = datetime.datetime.strptime(full_datetime_str, '%Y%m%d_%H%M%S')
-                    
-                    if not latest_time or file_time > latest_time:
-                        latest_time = file_time
-                        latest_file = os.path.join(deployed_dir, file)
-                except ValueError as e:
-                    print(f"Error parsing timestamp from filename '{file}': {str(e)}")
-                    continue
-    except Exception as e:
-        print(f"Error finding latest configuration file: {str(e)}")
-
+    for file_name in os.listdir(deployed_dir):
+        if file_name.startswith(f"{customer_name}_{device_name}") and file_name.endswith('.txt'):
+            file_time = parse_time_from_filename(file_name)
+            if file_time and (not latest_time or file_time > latest_time):
+                latest_time = file_time
+                latest_file = os.path.join(deployed_dir, file_name)
     return latest_file
 
+def parse_time_from_filename(filename: str) -> Optional[datetime.datetime]:
+    """Extract and parse the datetime from the filename."""
+    try:
+        parts = filename.split('_')
+        date_part = parts[-2]
+        time_part = parts[-1].split('.')[0]
+        return datetime.datetime.strptime(f"{date_part}_{time_part}", '%Y%m%d_%H%M%S')
+    except ValueError:
+        return None
 
-def compare_configurations(new_config, old_config_path):
-    """Generate a diff between the new configuration and the most recent configuration after normalizing the content."""
+def compare_configurations(new_config: str, old_config_path: str) -> str:
+    """Generate a diff between the new configuration and the most recent configuration."""
     if not old_config_path or not os.path.exists(old_config_path):
         return "No previous configuration to compare."
 
     with open(old_config_path, 'r') as file:
-        old_config = [line.strip() for line in file if line.strip()]
+        old_config = file.read().strip().replace('\r\n', '\n').split('\n')
 
-    new_config = [line.strip() for line in new_config.splitlines() if line.strip()]
+    new_config_lines = new_config.strip().replace('\r\n', '\n').split('\n')
+    diff = list(difflib.unified_diff(old_config, new_config_lines, fromfile='old_config', tofile='new_config', lineterm=''))
 
-    diff = list(difflib.unified_diff(old_config, new_config, fromfile='old_config', tofile='new_config', lineterm=''))
     return '\n'.join(diff) if diff else "No changes detected."
 
-
-def save_deployed_config(customer_name, device_name, configuration):
+def save_deployed_config(customer_name: str, device_name: str, configuration: str) -> str:
     """Saves the deployed configuration to a file."""
     deployed_dir = 'deployed_configs'
-    if not os.path.exists(deployed_dir):
-        os.makedirs(deployed_dir)
+    os.makedirs(deployed_dir, exist_ok=True)
     filename = f"{customer_name}_{device_name}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     file_path = os.path.join(deployed_dir, filename)
     with open(file_path, 'w') as file:
         file.write(configuration)
     return file_path
 
-def check_for_error_logs(customer_name, directory='generated_configs'):
+def check_for_error_logs(customer_name: str, directory: str = 'generated_configs') -> Optional[Dict[str, Any]]:
     """Check for existing error logs for the customer and abort deployment if found."""
     error_file = f"{customer_name}_error.json"
     error_path = os.path.join(directory, error_file)
     if os.path.exists(error_path):
         with open(error_path, 'r') as file:
-            error_data = json.load(file)
-        return error_data
+            return json.load(file)
     return None
 
-def cleanup_generated_configs(customer_name, directory='generated_configs'):
-    """Remove generated configuration files for a specific customer post-deployment."""
+def cleanup_generated_configs(customer_name: str, audit_entries: List[Dict[str, Any]], operator: str, operator_ip: str, directory: str = 'generated_configs') -> None:
+    """Remove generated configuration files for a specific customer post-deployment and log this action."""
     for filename in os.listdir(directory):
-        if filename.startswith(customer_name) and filename.endswith(".txt"):
+        if filename.startswith(customer_name) and (filename.endswith(".txt") or filename.endswith(".json")):
             os.remove(os.path.join(directory, filename))
-            print(f"Removed {filename} from {directory} after successful deployment.")
+            audit_entries.append(create_audit_entry(operator, operator_ip, action='Removed', file=filename))
 
-def deploy_config(username, password, customer_name, access_device, pe_device, deactivate):
-    """Deploy configurations to access and PE devices for a customer, ensuring both device configurations are correct."""
-    error_data = check_for_error_logs(customer_name)
-    if error_data:
-        return f"Deployment aborted due to config generation errors: {error_data['error_message']} (Error Code: {error_data['error_code']})"
+def deploy_configurations(username: str, password: str, customer_name: str, device_names: Dict[str, str], deactivate: bool):
+    """Deploy configurations to specified devices for a customer, based on activation or deactivation request."""
+    error_log = check_for_error_logs(customer_name)
+    if error_log:
+        return f"Deployment aborted due to config generation errors: {error_log['error_message']} (Error Code: {error_log['error_code']})"
 
-    devices = load_devices()
     if not verify_user(username, password):
         return "Authentication failed. Check username and password."
 
+    devices = load_devices()
     operator = get_current_user()
     operator_ip = get_ip_address()
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     audit_entries = []
 
-    access_remove_config_path = f"generated_configs/{customer_name}_{access_device}_access_config_remove.txt"
-    pe_remove_config_path = f"generated_configs/{customer_name}_{pe_device}_pe_config_remove.txt"
-    access_config_path = f"generated_configs/{customer_name}_{access_device}_access_config.txt"
-    pe_config_path = f"generated_configs/{customer_name}_{pe_device}_pe_config.txt"
+    start_time = time.time()
 
-    if not os.path.exists(access_remove_config_path) or not os.path.exists(pe_remove_config_path):
-        return "Configuration file(s) for specified devices not found. Please verify and try again."
+    print(f"Deployment started by {operator} from IP {operator_ip} at {datetime.datetime.now()}")
 
-    if not os.path.exists(access_config_path) or not os.path.exists(pe_config_path):
-        return "Configuration file(s) for specified devices not found. Please verify and try again."
+    config_suffixes = ['config_remove', 'config']  # Process removals first, then apply new configurations
+    config_file_paths = {}
+    all_configs = defaultdict(list)
 
-    if not deactivate:
-        try:
-            remove_configurations = {
-                access_device: (access_remove_config_path, 'access'),
-                pe_device: (pe_remove_config_path, 'pe')
-            }
-            configurations = {
-                access_device: (access_config_path, 'access'),
-                pe_device: (pe_config_path, 'pe')
-            }
-            all_successful = True
+    # Collect and verify all necessary config files before deployment
+    for device_name, config_action in device_names.items():
+        for suffix in config_suffixes:
+            config_type = f"{config_action}_{suffix}.txt"
+            config_file_name = f"{customer_name}_{device_name}_{config_type}"
+            config_file_path = f"generated_configs/{config_file_name}"
 
-            for device_name, (remove_config_path, config_suffix) in remove_configurations.items() :
-                device = devices.get(device_name)
-                if not device:
-                    return f"Device {device_name} not found in device configuration."
+            if not os.path.exists(config_file_path):
+                print(f"Configuration file for {device_name} ({config_type}) not found. Please verify and try again.")
+                return f"Deployment aborted. Missing configuration file: {config_file_name}"
 
-                device_type = device['device_type']
-                ip_address = device['ip_address']
-                configuration = open(remove_config_path, 'r').read()
-                start_time = datetime.datetime.now()
+            if device_name not in devices:
+                print(f"Device {device_name} not found in device configuration.")
+                return f"Deployment aborted. Device not found: {device_name}"
 
+            all_configs[device_name].append((config_file_path, devices[device_name]['ip_address'], devices[device_name]['device_type'], suffix == 'config'))
+
+    # Proceed with deployment if all files are verified
+    try:
+        for device_name, configs in all_configs.items():
+            previous_config_path = find_latest_config(customer_name, device_name)  # Find the latest config before any changes
+            for config_file_path, ip_address, device_type, is_new_config in configs:
                 ssh_client.connect(ip_address, username=username, password=password, timeout=10)
                 channel = ssh_client.invoke_shell()
-                deployment_commands = {
-                    'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
-                    'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
-                    'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
-                    'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
-                }.get(device_type, [])
 
-                for command in deployment_commands:
+                configuration = open(config_file_path, 'r').read()
+                commands = prepare_device_commands(device_type, configuration)
+                for command in commands:
                     channel.send(command + '\n')
                     time.sleep(1)
 
                 ssh_client.close()
-                end_time = datetime.datetime.now()
 
-            for device_name, (config_path, config_suffix) in configurations.items() :
-                device = devices.get(device_name)
-                if not device:
-                    return f"Device {device_name} not found in device configuration."
+                if is_new_config:  # Only compare diffs for new configurations
+                    diff_results = compare_configurations(configuration, previous_config_path)
+                    deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
+                    audit_entries.append({
+                        'device_name': device_name,
+                        'device_type': device_type,
+                        'configuration_type': config_type.split('_')[0],
+                        'configuration_path': config_file_path,
+                        'deployed_config_path': deployed_config_path,
+                        'diff_results': diff_results,
+                        'operator': operator,
+                        'operator_ip': operator_ip,
+                        'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'elapsed_time': f"Deployment completed in {time.time() - start_time:.2f} seconds"
+                    })
 
-                latest_config_path = find_latest_config(customer_name, device_name)
-                activation_status = "First-time activation" if not latest_config_path else "Re-activation"
-
-                device_type = device['device_type']
-                ip_address = device['ip_address']
-                configuration = open(config_path, 'r').read()
-                start_time = datetime.datetime.now()
-                deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
-                diff_results = compare_configurations(configuration, latest_config_path) if latest_config_path else "No previous configuration to compare."
-
-                ssh_client.connect(ip_address, username=username, password=password, timeout=10)
-                channel = ssh_client.invoke_shell()
-                deployment_commands = {
-                    'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
-                    'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
-                    'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
-                    'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
-                }.get(device_type, [])
-
-                for command in deployment_commands:
-                    channel.send(command + '\n')
-                    time.sleep(1)
-
-                ssh_client.close()
-                end_time = datetime.datetime.now()
-                result = "Success"
-                audit_entries.append({
-                    'start_time': start_time,
-                    'end_time': end_time,
-                    'device_name': device_name,
-                    'device_type': device_type,
-                    'generated_config_path': config_path,
-                    'deployed_config_path': deployed_config_path,
-                    'result': result,
-                    'diff_results': diff_results,
-                    'activation_status': activation_status,
-                    'operator': operator,
-                    'operator_ip': operator_ip
-                })
-        except Exception as e:
-            all_successful = False
-            print(f"Deployment failed with an exception: {str(e)}")
-
-    if deactivate:
-        try:
-            remove_configurations = {
-                access_device: (access_remove_config_path, 'access'),
-                pe_device: (pe_remove_config_path, 'pe')
-            }
-            all_successful = True
-
-            for device_name, (remove_config_path, config_suffix) in remove_configurations.items() :
-                device = devices.get(device_name)
-                if not device:
-                    return f"Device {device_name} not found in device configuration."
-
-                latest_config_path = find_latest_config(customer_name, device_name)
-                activation_status = "No prior configuration to remove" if not latest_config_path else "Deactivating and removing the customer..."
-
-                device_type = device['device_type']
-                ip_address = device['ip_address']
-                configuration = open(remove_config_path, 'r').read()
-                start_time = datetime.datetime.now()
-                deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
-                diff_results = compare_configurations(configuration, latest_config_path) if latest_config_path else "No previous configuration to compare."
-
-                ssh_client.connect(ip_address, username=username, password=password, timeout=10)
-                channel = ssh_client.invoke_shell()
-                deployment_commands = {
-                    'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
-                    'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
-                    'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
-                    'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
-                }.get(device_type, [])
-
-                for command in deployment_commands:
-                    channel.send(command + '\n')
-                    time.sleep(1)
-
-                ssh_client.close()
-                end_time = datetime.datetime.now()
-                result = "Success"
-                audit_entries.append({
-                    'start_time': start_time,
-                    'end_time': end_time,
-                    'device_name': device_name,
-                    'device_type': device_type,
-                    'generated_config_path': remove_config_path,
-                    'deployed_config_path': deployed_config_path,
-                    'result': result,
-                    'diff_results': diff_results,
-                    'activation_status': activation_status,
-                    'operator': operator,
-                    'operator_ip': operator_ip
-                })
-        except Exception as e:
-            all_successful = False
-            print(f"Deployment failed with an exception: {str(e)}")
-
-    if all_successful:
-        audit_path = write_audit_log(customer_name, audit_entries)
-        cleanup_generated_configs(customer_name)
+        cleanup_generated_configs(customer_name, audit_entries, operator, operator_ip)
+        filtered_entries = [entry for entry in audit_entries if 'configuration_path' in entry and 'deployed_config_path' in entry]
+        audit_path = write_audit_log(customer_name, filtered_entries)
         return f"Deployment completed successfully. Detailed audit log saved at: {audit_path}"
-    else:
-        return "One or more deployments failed. Check the logs for more details."
+    except Exception as e:
+        ssh_client.close()
+        return f"Deployment failed with an exception: {str(e)}"
+
+def prepare_device_commands(device_type: str, configuration: str) -> List[str]:
+    """Prepare device-specific deployment commands."""
+    return {
+        'cisco_xe': ['config terminal', configuration, 'end', 'write memory', 'exit'],
+        'cisco_xr': ['config terminal', configuration, 'commit', 'end', 'exit'],
+        'juniper_junos': ['edit', configuration, 'commit', 'commit and-quit'],
+        'huawei_vrp': ['system-view', configuration, 'return', 'save', 'Y', 'quit']
+    }.get(device_type, [])
 
 def main():
     parser = argparse.ArgumentParser(description="Network Configuration Deployment")
@@ -334,8 +254,12 @@ def main():
     parser.add_argument("--deactivate", action='store_true', help="Deploy only the removal configurations")
 
     args = parser.parse_args()
+    device_configurations = {
+        args.access_device: 'access' if not args.deactivate else 'remove',
+        args.pe_device: 'pe' if not args.deactivate else 'remove'
+    }
 
-    result = deploy_config(args.username, args.password, args.customer_name, args.access_device, args.pe_device, args.deactivate)
+    result = deploy_configurations(args.username, args.password, args.customer_name, device_configurations, args.deactivate)
     print(result)
 
 if __name__ == "__main__":
