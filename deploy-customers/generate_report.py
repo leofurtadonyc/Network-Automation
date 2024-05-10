@@ -8,12 +8,13 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Imag
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 
-""" Function to parse deployment logs and return a DataFrame""" 
+# Function to read and parse deployment logs
 def parse_deployment_logs(log_dir):
     data = []
     for log_file in os.listdir(log_dir):
         with open(os.path.join(log_dir, log_file), 'r') as file:
             content = file.read()
+            # Extract operator information
             operator_info = re.search(r'Operator: (.+) from IP (.+)', content)
             if not operator_info:
                 print(f"Missing operator information in file {log_file}")
@@ -22,12 +23,15 @@ def parse_deployment_logs(log_dir):
             operator = operator_info.group(1)
             operator_ip = operator_info.group(2)
             
+            # Splitting log content by each deployment block
             deployment_blocks = content.split('--------------------------------------------------')
             
             for block in deployment_blocks:
+                # Skip empty blocks
                 if not block.strip():
                     continue
 
+                # Extracting fields from each block
                 deployment_start = re.search(r'Deployment start: (.+)', block)
                 deployment_end = re.search(r'Deployment end: (.+)', block)
                 device = re.search(r'Device: (.+) \((.+)\)', block)
@@ -75,8 +79,8 @@ def parse_deployment_logs(log_dir):
     
     return pd.DataFrame(data)
 
-""" Function to generate PDF report """
-def generate_pdf_report(data, timeframe, output_file):
+# Function to generate PDF report
+def generate_pdf_report(data, timeframe, output_file, report_dir):
     if data.empty:
         print("No data to generate report.")
         return
@@ -106,7 +110,7 @@ def generate_pdf_report(data, timeframe, output_file):
     story.append(Spacer(1, 12))
 
     # Add charts
-    add_charts(data, story)
+    chart_files = add_charts(data, story, report_dir)
 
     # Deployment counts by device
     device_counts = data['device'].value_counts().reset_index()
@@ -151,11 +155,19 @@ def generate_pdf_report(data, timeframe, output_file):
     # Build PDF
     doc.build(story)
 
-""" Function to add charts to the PDF report """
-def add_charts(data, story):
+    # Clean up chart files
+    for chart_file in chart_files:
+        if os.path.exists(chart_file):
+            os.remove(chart_file)
+
+# Function to add charts to the PDF report
+def add_charts(data, story, report_dir):
+    chart_files = []
+
+    # Ensure there are data points to plot
     if data.empty:
         print("No data available to plot charts.")
-        return
+        return chart_files
 
     # Weekly activations chart
     weekly_data = data[data['start_time'] >= (datetime.datetime.now() - datetime.timedelta(days=7))]
@@ -167,11 +179,12 @@ def add_charts(data, story):
         plt.xlabel('Date')
         plt.ylabel('Count')
         plt.tight_layout()
-        weekly_chart = 'weekly_activations.png'
+        weekly_chart = os.path.join(report_dir, 'weekly_activations.png')
         plt.savefig(weekly_chart)
         plt.close()
         story.append(Image(weekly_chart, 6 * inch, 4 * inch))
         story.append(Spacer(1, 12))
+        chart_files.append(weekly_chart)
 
     # Monthly activations chart
     monthly_data = data[data['start_time'] >= (datetime.datetime.now() - datetime.timedelta(days=30))]
@@ -183,11 +196,12 @@ def add_charts(data, story):
         plt.xlabel('Date')
         plt.ylabel('Count')
         plt.tight_layout()
-        monthly_chart = 'monthly_activations.png'
+        monthly_chart = os.path.join(report_dir, 'monthly_activations.png')
         plt.savefig(monthly_chart)
         plt.close()
         story.append(Image(monthly_chart, 6 * inch, 4 * inch))
         story.append(Spacer(1, 12))
+        chart_files.append(monthly_chart)
 
     # Deployment outcomes chart
     outcome_counts = data['result'].value_counts()
@@ -196,26 +210,33 @@ def add_charts(data, story):
         outcome_counts.plot(kind='pie', autopct='%1.1f%%', colors=['green', 'red'], labels=outcome_counts.index)
         plt.title('Deployment Outcomes')
         plt.tight_layout()
-        outcomes_chart = 'deployment_outcomes.png'
+        outcomes_chart = os.path.join(report_dir, 'deployment_outcomes.png')
         plt.savefig(outcomes_chart)
         plt.close()
         story.append(Image(outcomes_chart, 6 * inch, 4 * inch))
         story.append(Spacer(1, 12))
+        chart_files.append(outcomes_chart)
 
+    return chart_files
+
+# Main function
 if __name__ == "__main__":
     log_dir = 'audit_logs'
     report_dir = 'reports'
     
+    # Create reports directory if it doesn't exist
     if not os.path.exists(report_dir):
         os.makedirs(report_dir)
     
+    # Define timeframe for the report
     timeframe = datetime.datetime.now().strftime('%d-%m-%Y')
     output_file = os.path.join(report_dir, f'customer_deployment_report_{timeframe}.pdf')
     
     data = parse_deployment_logs(log_dir)
     
+    # Debug print to check DataFrame structure
     print(data.head())
     
-    generate_pdf_report(data, timeframe, output_file)
+    generate_pdf_report(data, timeframe, output_file, report_dir)
     
     print(f'PDF report generated: {output_file}')
