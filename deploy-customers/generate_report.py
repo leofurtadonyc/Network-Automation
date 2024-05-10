@@ -1,6 +1,7 @@
 import os
 import re
 import datetime
+from datetime import timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import letter
@@ -8,42 +9,44 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Imag
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 
-# Function to read and parse deployment logs
+""" Function to read and parse deployment logs """
 def parse_deployment_logs(log_dir):
     data = []
     for log_file in os.listdir(log_dir):
         with open(os.path.join(log_dir, log_file), 'r') as file:
             content = file.read()
-            # Extract operator information
+
             operator_info = re.search(r'Operator: (.+) from IP (.+)', content)
             if not operator_info:
                 print(f"Missing operator information in file {log_file}")
                 continue
-            
+
             operator = operator_info.group(1)
             operator_ip = operator_info.group(2)
-            
-            # Splitting log content by each deployment block
+
             deployment_blocks = content.split('--------------------------------------------------')
-            
+
+            end_time = None
             for block in deployment_blocks:
-                # Skip empty blocks
                 if not block.strip():
                     continue
 
-                # Extracting fields from each block
-                deployment_start = re.search(r'Deployment start: (.+)', block)
-                deployment_end = re.search(r'Deployment end: (.+)', block)
+                if not end_time:
+                    end_time_match = re.search(r'Completed at: (.+)', block)
+                    if end_time_match:
+                        end_time = datetime.datetime.strptime(end_time_match.group(1), '%Y-%m-%d %H:%M:%S')
+
+                duration_match = re.search(r'Duration of execution: Deployment completed in ([\d.]+) seconds', block)
                 device = re.search(r'Device: (.+) \((.+)\)', block)
                 result = re.search(r'Deployment result: (.+)', block)
                 activation_status = re.search(r'Activation status: (.+)', block)
                 generated_config = re.search(r'Generated config file: (.+)', block)
-                
+
                 missing_fields = []
-                if not deployment_start:
-                    missing_fields.append('deployment_start')
-                if not deployment_end:
-                    missing_fields.append('deployment_end')
+                if not end_time:
+                    missing_fields.append('end_time')
+                if not duration_match:
+                    missing_fields.append('duration')
                 if not device:
                     missing_fields.append('device')
                 if not result:
@@ -52,16 +55,15 @@ def parse_deployment_logs(log_dir):
                     missing_fields.append('activation_status')
                 if not generated_config:
                     missing_fields.append('generated_config')
-                
+
                 if missing_fields:
                     print(f"Missing fields {missing_fields} in block: {block.strip()[:100]}...")
                     continue
-                
+
                 try:
-                    start_time = datetime.datetime.strptime(deployment_start.group(1), '%Y-%m-%d %H:%M:%S')
-                    end_time = datetime.datetime.strptime(deployment_end.group(1), '%Y-%m-%d %H:%M:%S')
-                    duration = (end_time - start_time).total_seconds()
-                    
+                    duration = float(duration_match.group(1))
+                    start_time = end_time - timedelta(seconds=duration)
+
                     data.append({
                         'operator': operator,
                         'operator_ip': operator_ip,
@@ -74,12 +76,14 @@ def parse_deployment_logs(log_dir):
                         'template': generated_config.group(1),
                         'duration': duration
                     })
+
+                    end_time = None
                 except ValueError as e:
                     print(f"Error parsing dates in block: {block.strip()[:100]}: {e}")
-    
+
     return pd.DataFrame(data)
 
-# Function to generate PDF report
+""" Function to generate PDF report """
 def generate_pdf_report(data, timeframe, output_file, report_dir):
     if data.empty:
         print("No data to generate report.")
@@ -88,21 +92,21 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     doc = SimpleDocTemplate(output_file, pagesize=letter)
     styles = getSampleStyleSheet()
     story = []
-    
+
     # Title
     story.append(Paragraph('Deployment Report', styles['Title']))
     story.append(Spacer(1, 12))
-    
+
     # Timeframe
     story.append(Paragraph(f'Timeframe: {timeframe}', styles['Heading2']))
     story.append(Spacer(1, 12))
-    
+
     # Weekly activations
     this_week = data[data['start_time'] >= (datetime.datetime.now() - datetime.timedelta(days=7))]
     weekly_activations = len(this_week)
     story.append(Paragraph(f'Weekly Activations: {weekly_activations}', styles['Heading2']))
     story.append(Spacer(1, 12))
-    
+
     # Monthly activations
     this_month = data[data['start_time'] >= (datetime.datetime.now() - datetime.timedelta(days=30))]
     monthly_activations = len(this_month)
@@ -119,7 +123,7 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     device_table = Table([device_counts.columns.tolist()] + device_counts.values.tolist())
     story.append(device_table)
     story.append(Spacer(1, 12))
-    
+
     # Deployment outcomes
     outcome_counts = data['result'].value_counts().reset_index()
     outcome_counts.columns = ['Result', 'Count']
@@ -127,7 +131,7 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     outcome_table = Table([outcome_counts.columns.tolist()] + outcome_counts.values.tolist())
     story.append(outcome_table)
     story.append(Spacer(1, 12))
-    
+
     # Deployment scenarios
     scenario_counts = data['activation_status'].value_counts().reset_index()
     scenario_counts.columns = ['Scenario', 'Count']
@@ -135,7 +139,7 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     scenario_table = Table([scenario_counts.columns.tolist()] + scenario_counts.values.tolist())
     story.append(scenario_table)
     story.append(Spacer(1, 12))
-    
+
     # Average deployment times
     avg_times = data.groupby('activation_status')['duration'].mean().reset_index()
     avg_times.columns = ['Scenario', 'Average Time (s)']
@@ -143,7 +147,7 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     avg_time_table = Table([avg_times.columns.tolist()] + avg_times.values.tolist())
     story.append(avg_time_table)
     story.append(Spacer(1, 12))
-    
+
     # Jinja2 template usage
     template_counts = data['template'].value_counts().reset_index()
     template_counts.columns = ['Template', 'Count']
@@ -151,20 +155,18 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     template_table = Table([template_counts.columns.tolist()] + template_counts.values.tolist())
     story.append(template_table)
     story.append(Spacer(1, 12))
-    
+
     # Build PDF
     doc.build(story)
 
-    # Clean up chart files
     for chart_file in chart_files:
         if os.path.exists(chart_file):
             os.remove(chart_file)
 
-# Function to add charts to the PDF report
+""" Function to add charts to the PDF report"""
 def add_charts(data, story, report_dir):
     chart_files = []
 
-    # Ensure there are data points to plot
     if data.empty:
         print("No data available to plot charts.")
         return chart_files
@@ -219,22 +221,18 @@ def add_charts(data, story, report_dir):
 
     return chart_files
 
-# Main function
 if __name__ == "__main__":
     log_dir = 'audit_logs'
     report_dir = 'reports'
     
-    # Create reports directory if it doesn't exist
     if not os.path.exists(report_dir):
         os.makedirs(report_dir)
     
-    # Define timeframe for the report
     timeframe = datetime.datetime.now().strftime('%d-%m-%Y')
     output_file = os.path.join(report_dir, f'customer_deployment_report_{timeframe}.pdf')
     
     data = parse_deployment_logs(log_dir)
     
-    # Debug print to check DataFrame structure
     print(data.head())
     
     generate_pdf_report(data, timeframe, output_file, report_dir)
