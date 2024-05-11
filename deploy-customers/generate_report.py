@@ -5,36 +5,40 @@ from datetime import timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.lib import colors
 
-""" Function to read and parse deployment logs """
-def parse_deployment_logs(log_dir):
+""" Function to parse deployment logs and generate a PDF report """
+def parse_deployment_logs(log_dir, verbose=False):
     data = []
     for log_file in os.listdir(log_dir):
         with open(os.path.join(log_dir, log_file), 'r') as file:
             content = file.read()
-
             operator_info = re.search(r'Operator: (.+) from IP (.+)', content)
             if not operator_info:
-                print(f"Missing operator information in file {log_file}")
+                if verbose:
+                    print(f"Missing operator information in file {log_file}")
                 continue
 
             operator = operator_info.group(1)
             operator_ip = operator_info.group(2)
 
+            # Extract end time once for the entire log file
+            end_time_match = re.search(r'Completed at: (.+)', content)
+            if end_time_match:
+                end_time = datetime.datetime.strptime(end_time_match.group(1), '%Y-%m-%d %H:%M:%S')
+            else:
+                if verbose:
+                    print(f"Missing end time in file {log_file}")
+                continue
+
             deployment_blocks = content.split('--------------------------------------------------')
 
-            end_time = None
             for block in deployment_blocks:
                 if not block.strip():
                     continue
-
-                if not end_time:
-                    end_time_match = re.search(r'Completed at: (.+)', block)
-                    if end_time_match:
-                        end_time = datetime.datetime.strptime(end_time_match.group(1), '%Y-%m-%d %H:%M:%S')
 
                 duration_match = re.search(r'Duration of execution: Deployment completed in ([\d.]+) seconds', block)
                 device = re.search(r'Device: (.+) \((.+)\)', block)
@@ -43,8 +47,6 @@ def parse_deployment_logs(log_dir):
                 generated_config = re.search(r'Generated config file: (.+)', block)
 
                 missing_fields = []
-                if not end_time:
-                    missing_fields.append('end_time')
                 if not duration_match:
                     missing_fields.append('duration')
                 if not device:
@@ -57,7 +59,8 @@ def parse_deployment_logs(log_dir):
                     missing_fields.append('generated_config')
 
                 if missing_fields:
-                    print(f"Missing fields {missing_fields} in block: {block.strip()[:100]}...")
+                    if verbose:
+                        print(f"Missing fields {missing_fields} in block: {block.strip()[:100]}...")
                     continue
 
                 try:
@@ -77,13 +80,13 @@ def parse_deployment_logs(log_dir):
                         'duration': duration
                     })
 
-                    end_time = None
                 except ValueError as e:
-                    print(f"Error parsing dates in block: {block.strip()[:100]}: {e}")
+                    if verbose:
+                        print(f"Error parsing dates in block: {block.strip()[:100]}: {e}")
 
     return pd.DataFrame(data)
 
-""" Function to generate PDF report """
+""" Function to generate a PDF report with deployment statistics"""
 def generate_pdf_report(data, timeframe, output_file, report_dir):
     if data.empty:
         print("No data to generate report.")
@@ -103,13 +106,13 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
 
     # Weekly activations
     this_week = data[data['start_time'] >= (datetime.datetime.now() - datetime.timedelta(days=7))]
-    weekly_activations = len(this_week)
+    weekly_activations = len(this_week.drop_duplicates(subset=['end_time']))
     story.append(Paragraph(f'Weekly Activations: {weekly_activations}', styles['Heading2']))
     story.append(Spacer(1, 12))
 
     # Monthly activations
     this_month = data[data['start_time'] >= (datetime.datetime.now() - datetime.timedelta(days=30))]
-    monthly_activations = len(this_month)
+    monthly_activations = len(this_month.drop_duplicates(subset=['end_time']))
     story.append(Paragraph(f'Monthly Activations: {monthly_activations}', styles['Heading2']))
     story.append(Spacer(1, 12))
 
@@ -120,23 +123,51 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     device_counts = data['device'].value_counts().reset_index()
     device_counts.columns = ['Device', 'Count']
     story.append(Paragraph('Deployments by Device', styles['Heading2']))
-    device_table = Table([device_counts.columns.tolist()] + device_counts.values.tolist())
+    device_table = Table([device_counts.columns.tolist()] + device_counts.values.tolist(), hAlign='LEFT')
+    device_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
     story.append(device_table)
     story.append(Spacer(1, 12))
 
     # Deployment outcomes
-    outcome_counts = data['result'].value_counts().reset_index()
+    unique_deployments = data.drop_duplicates(subset=['end_time'])
+    outcome_counts = unique_deployments['result'].value_counts().reset_index()
     outcome_counts.columns = ['Result', 'Count']
     story.append(Paragraph('Deployment Outcomes', styles['Heading2']))
-    outcome_table = Table([outcome_counts.columns.tolist()] + outcome_counts.values.tolist())
+    outcome_table = Table([outcome_counts.columns.tolist()] + outcome_counts.values.tolist(), hAlign='LEFT')
+    outcome_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
     story.append(outcome_table)
     story.append(Spacer(1, 12))
 
     # Deployment scenarios
-    scenario_counts = data['activation_status'].value_counts().reset_index()
+    scenario_counts = unique_deployments['activation_status'].value_counts().reset_index()
     scenario_counts.columns = ['Scenario', 'Count']
     story.append(Paragraph('Deployment Scenarios', styles['Heading2']))
-    scenario_table = Table([scenario_counts.columns.tolist()] + scenario_counts.values.tolist())
+    scenario_table = Table([scenario_counts.columns.tolist()] + scenario_counts.values.tolist(), hAlign='LEFT')
+    scenario_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
     story.append(scenario_table)
     story.append(Spacer(1, 12))
 
@@ -144,7 +175,16 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     avg_times = data.groupby('activation_status')['duration'].mean().reset_index()
     avg_times.columns = ['Scenario', 'Average Time (s)']
     story.append(Paragraph('Average Deployment Times', styles['Heading2']))
-    avg_time_table = Table([avg_times.columns.tolist()] + avg_times.values.tolist())
+    avg_time_table = Table([avg_times.columns.tolist()] + avg_times.values.tolist(), hAlign='LEFT')
+    avg_time_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
     story.append(avg_time_table)
     story.append(Spacer(1, 12))
 
@@ -152,7 +192,16 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
     template_counts = data['template'].value_counts().reset_index()
     template_counts.columns = ['Template', 'Count']
     story.append(Paragraph('Jinja2 Template Usage', styles['Heading2']))
-    template_table = Table([template_counts.columns.tolist()] + template_counts.values.tolist())
+    template_table = Table([template_counts.columns.tolist()] + template_counts.values.tolist(), hAlign='LEFT')
+    template_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
     story.append(template_table)
     story.append(Spacer(1, 12))
 
@@ -163,7 +212,7 @@ def generate_pdf_report(data, timeframe, output_file, report_dir):
         if os.path.exists(chart_file):
             os.remove(chart_file)
 
-""" Function to add charts to the PDF report"""
+""" Function to add charts to the PDF report """
 def add_charts(data, story, report_dir):
     chart_files = []
 
@@ -173,7 +222,7 @@ def add_charts(data, story, report_dir):
 
     # Weekly activations chart
     weekly_data = data[data['start_time'] >= (datetime.datetime.now() - datetime.timedelta(days=7))]
-    weekly_counts = weekly_data['start_time'].dt.date.value_counts().sort_index()
+    weekly_counts = weekly_data.drop_duplicates(subset=['end_time'])['start_time'].dt.date.value_counts().sort_index()
     if not weekly_counts.empty:
         plt.figure(figsize=(10, 6))
         weekly_counts.plot(kind='bar', color='skyblue')
@@ -190,7 +239,7 @@ def add_charts(data, story, report_dir):
 
     # Monthly activations chart
     monthly_data = data[data['start_time'] >= (datetime.datetime.now() - datetime.timedelta(days=30))]
-    monthly_counts = monthly_data['start_time'].dt.date.value_counts().sort_index()
+    monthly_counts = monthly_data.drop_duplicates(subset=['end_time'])['start_time'].dt.date.value_counts().sort_index()
     if not monthly_counts.empty:
         plt.figure(figsize=(10, 6))
         monthly_counts.plot(kind='bar', color='skyblue')
@@ -206,7 +255,8 @@ def add_charts(data, story, report_dir):
         chart_files.append(monthly_chart)
 
     # Deployment outcomes chart
-    outcome_counts = data['result'].value_counts()
+    unique_deployments = data.drop_duplicates(subset=['end_time'])
+    outcome_counts = unique_deployments['result'].value_counts()
     if not outcome_counts.empty:
         plt.figure(figsize=(10, 6))
         outcome_counts.plot(kind='pie', autopct='%1.1f%%', colors=['green', 'red'], labels=outcome_counts.index)
@@ -231,7 +281,7 @@ if __name__ == "__main__":
     timeframe = datetime.datetime.now().strftime('%d-%m-%Y')
     output_file = os.path.join(report_dir, f'customer_deployment_report_{timeframe}.pdf')
     
-    data = parse_deployment_logs(log_dir)
+    data = parse_deployment_logs(log_dir, verbose=False)
     
     print(data.head())
     
