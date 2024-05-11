@@ -1,0 +1,52 @@
+Operator: root from IP 192.168.0.108
+Completed at: 2024-05-11 09:38:45
+--------------------------------------------------
+Duration of execution: Deployment completed in 10.91 seconds
+Device: a-cisco-01 (cisco_xe)
+Generated config file: generated_configs/LEONARDOFURTADO_a-cisco-01_access_config.txt
+Deployed config file: deployed_configs/LEONARDOFURTADO_a-cisco-01_20240511_093845.txt
+Deployment result: Success
+Activation status: Re-activation
+Configuration differences:
+No changes detected.
+--------------------------------------------------
+Duration of execution: Deployment completed in 19.52 seconds
+Device: pe-juniper-01 (juniper_junos)
+Generated config file: generated_configs/LEONARDOFURTADO_pe-juniper-01_pe_config.txt
+Deployed config file: deployed_configs/LEONARDOFURTADO_pe-juniper-01_20240511_093854.txt
+Deployment result: Success
+Activation status: Re-activation with service changes
+Configuration differences:
+--- old_config
++++ new_config
+@@ -1,5 +1,25 @@
+-delete routing-instances LEONARDOFURTADO-20
+-delete interfaces irb unit 20
+-delete routing-options static route 172.17.0.0/16
+-delete routing-options rib inet6.0 static route 2001:db8:2222::/48
++set routing-instances LEONARDOFURTADO-20 instance-type vpls
++set routing-instances LEONARDOFURTADO-20 vlan-tags inner 20
++set routing-instances LEONARDOFURTADO-20 vlan-tags outer 600
++set routing-instances LEONARDOFURTADO-20 routing-interface irb.20
++set routing-instances LEONARDOFURTADO-20 protocols vpls encapsulation-type ethernet
++set routing-instances LEONARDOFURTADO-20 protocols vpls control-word
++set routing-instances LEONARDOFURTADO-20 protocols vpls no-tunnel-services
++set routing-instances LEONARDOFURTADO-20 protocols vpls vpls-id 20
++set routing-instances LEONARDOFURTADO-20 protocols vpls mtu 1500
++set routing-instances LEONARDOFURTADO-20 protocols vpls neighbor 10.255.255.1
++set routing-instances LEONARDOFURTADO-20 protocols vpls connectivity-type irb
++set interfaces irb unit 20 description LEONARDOFURTADO-20
++set interfaces irb unit 20 family inet address 172.16.1.1/30
++set interfaces irb unit 20 family inet rpf-check
++set interfaces irb unit 20 family inet sampling input
++set interfaces irb unit 20 family inet6 address 2001:db8:1234:1234::1/127
++set interfaces irb unit 20 family inet6 rpf-check
++set interfaces irb unit 20 family inet6 sampling input
++set routing-options static route 172.17.0.0/16 next-hop 172.16.1.2
++set routing-options static route 172.17.0.0/16 community 65000:10000
++set routing-options static route 172.17.0.0/16 community no-export
++set routing-options rib inet6.0 static route 2001:db8:2222::/48 next-hop 2001:db8:1234:1234::2
++set routing-options rib inet6.0 static route 2001:db8:2222::/48 community 65000:11000
++set routing-options rib inet6.0 static route 2001:db8:2222::/48 community no-export
+ commit and-quit
+--------------------------------------------------

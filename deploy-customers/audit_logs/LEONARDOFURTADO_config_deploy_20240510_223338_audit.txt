@@ -1,24 +1,21 @@
 Operator: root from IP 192.168.0.108
+Completed at: 2024-05-10 22:33:29
 --------------------------------------------------
-Deployment start: 2024-05-01 21:14:50
-Deployment end: 2024-05-01 21:14:55
-Deployment duration: 5 seconds
+Duration of execution: Deployment completed in 10.89 seconds
 Device: a-cisco-01 (cisco_xe)
 Generated config file: generated_configs/LEONARDOFURTADO_a-cisco-01_access_config.txt
-Deployed config file: deployed_configs/LEONARDOFURTADO_a-cisco-01_20240501_211450.txt
+Deployed config file: deployed_configs/LEONARDOFURTADO_a-cisco-01_20240510_223329.txt
 Deployment result: Success
-Activation status: First-time activation
+Activation status: First-time customer activation (no previous configuration found).
 Configuration differences:
 No previous configuration to compare.
 --------------------------------------------------
-Deployment start: 2024-05-01 21:14:55
-Deployment end: 2024-05-01 21:14:58
-Deployment duration: 3 seconds
+Duration of execution: Deployment completed in 19.82 seconds
 Device: pe-juniper-01 (juniper_junos)
 Generated config file: generated_configs/LEONARDOFURTADO_pe-juniper-01_pe_config.txt
-Deployed config file: deployed_configs/LEONARDOFURTADO_pe-juniper-01_20240501_211455.txt
+Deployed config file: deployed_configs/LEONARDOFURTADO_pe-juniper-01_20240510_223338.txt
 Deployment result: Success
-Activation status: First-time activation
+Activation status: First-time customer activation (no previous configuration found).
 Configuration differences:
 No previous configuration to compare.
 --------------------------------------------------
