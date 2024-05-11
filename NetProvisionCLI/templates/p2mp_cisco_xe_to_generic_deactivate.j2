@@ -1,0 +1,12 @@
+{# Policy Template for a Cisco ASR 920 L2VPN VFI towards a Cisco IOS XR PE device #}
+bridge-domain {{ service_instance_id }}
+ no member {{ interface_name }} service-instance {{ service_instance_id }}
+ no member vfi {{ customer_name }}-{{ service_instance_id }}
+no bridge-domain {{ service_instance_id }}
+no l2vpn vfi context {{ customer_name }}-{{ service_instance_id }}
+l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
+ no member {{ pe_loopback }} {{ pw_id }} encapsulation mpls
+ no member {{ interface_name }} service-instance {{ service_instance_id }}
+no l2vpn xconnect context {{ customer_name }}-{{ service_instance_id }}
+interface {{ interface_name }}
+ no service instance {{ service_instance_id }} ethernet

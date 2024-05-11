@@ -1,0 +1,12 @@
+
+bridge-domain 20
+ no member GigabitEthernet1 service-instance 20
+ no member vfi LEONARDOFURTADO-20
+no bridge-domain 20
+no l2vpn vfi context LEONARDOFURTADO-20
+l2vpn xconnect context LEONARDOFURTADO-20
+ no member 10.255.255.5 20 encapsulation mpls
+ no member GigabitEthernet1 service-instance 20
+no l2vpn xconnect context LEONARDOFURTADO-20
+interface GigabitEthernet1
+ no service instance 20 ethernet
