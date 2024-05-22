@@ -1,4 +1,9 @@
 data_source: yaml
+influxdb:
+  bucket: netprovision
+  org: Leonardo Furtado
+  token: tWd9KFd8P5Urz1Ei6CesC2E5sWuQtiHygCfuwGOu2AIpLqCT_rEM46RCFhT7Ffyiv7w8g0EfDxSw2Inq7UP8Uw==
+  url: http://localhost:8086
 mongodb_connection:
   database_name: netprovision
   uri: mongodb://localhost:27017/
