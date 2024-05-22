@@ -1,6 +1,0 @@
-
-delete routing-instances LEONARDOFURTADO-20
-delete interfaces irb unit 20
-delete routing-options static route 172.17.0.0/16
-delete routing-options rib inet6.0 static route 2001:db8:2222::/48
-commit and-quit
