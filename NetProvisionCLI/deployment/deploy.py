@@ -11,7 +11,7 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from utils.file_utils import write_to_file, log_error, delete_error_log
 from utils.validation import valid_ip_irb, valid_ip_nexthop, valid_ip_lan, interface_allowed
 from audit.audit_log import create_audit_log_entry, write_audit_log
-from audit.cleanup import cleanup_generated_configs, check_for_error_logs
+from audit.cleanup import check_for_error_logs
 from security.auth import verify_user
 from utils.network_utils import get_current_user, get_ip_address
 from config.load_config import load_yaml, load_settings, load_devices, load_mongodb
@@ -82,7 +82,7 @@ def cleanup_generated_configs(customer_name: str):
             except Exception as e:
                 print(f"Error deleting file {file_path}: {e}")
 
-def deploy_configurations(username: str, password: str, customer_name: str, device_names: dict):
+def deploy_configurations(username: str, password: str, customer_name: str, device_names: dict) -> Optional[str]:
     """Deploy configurations to specified devices for a customer."""
     error_log = check_for_error_logs(customer_name)
     if error_log:
@@ -116,6 +116,7 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
     config_suffixes = ['config_remove', 'config', 'config_deactivate']
     all_configs = defaultdict(list)
 
+    # Collect and verify all necessary config files before deployment
     for device_name, config_action in device_names.items():
         if device_name not in devices:
             print(f"Device {device_name} not found in device configuration.")
@@ -149,16 +150,16 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
                 commands = prepare_device_commands(device_type, configuration)
                 for command in commands:
                     channel.send(command + '\n')
-                    time.sleep(2)
+                    time.sleep(2)  # Ensure the command gets executed
 
                 ssh_client.close()
 
                 is_deactivate = suffix == 'config_deactivate'
                 is_new_config = suffix == 'config'
 
-                if is_new_config or is_deactivate:
+                if is_new_config or is_deactivate:  # Only log active and deactivate configurations
                     diff_results = ""
-                    if is_new_config:
+                    if is_new_config:  # Only compare diffs for new configurations
                         diff_results = compare_configurations(configuration, previous_config_path)
 
                     if data_source == 'yaml':
@@ -183,7 +184,7 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
                         timestamp=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
                         elapsed_time=f"Deployment completed in {time.time() - start_time:.2f} seconds"
                     )
-                    audit_entries.append(audit_entry)
+                    audit_entries.append(audit_entry)  # Store as dict for further processing
 
         if data_source == 'yaml':
             audit_path = write_audit_log(customer_name, audit_entries)
@@ -196,8 +197,8 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
                 write_api.write(bucket=influxdb_bucket, org=influxdb_org, record=point)
 
             print(f"Deployment ID for audit log: {deployment_id}")
+            print(f"To check the audit log entries for this deployment from InfluxDB, use: python netprovisioncli_commitdb.py --deployment-id {deployment_id}")
             print("Deployment completed successfully. Detailed audit log saved in InfluxDB.")
-            print(f"To check the audit log entries for this deployment from InfluxDB, use: python netprovisioncli_commitdb.py --deployment {deployment_id}")
             cleanup_generated_configs(customer_name)
 
     except Exception as e:
