@@ -1,0 +1,4 @@
+data_source: yaml
+mongodb_connection:
+  database_name: netprovision
+  uri: mongodb://localhost:27017/

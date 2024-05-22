@@ -1,0 +1,49 @@
+==== SCENARIO WITH DEVICES CONFIGURATIONS KEPT IN YAML FILES. IN THIS CASE, THERE WON'T BE ANY PREVIOUS CUSTOMER CONFIGURATION AS IT IS PARSED BY THE USER UPON SCRIPT EXECUTION
+
+# Switch data source to YAML
+python netprovisioncli_settings.py --set-source yaml
+
+# Verify settings
+python netprovisioncli_settings.py --show
+
+# Generating the configuration files for the customer LEONARDOFURTADO
+python netprovisioncli_generate.py \
+  --customer-name LEONARDOFURTADO \
+  --access-device a-cisco-01 \
+  --access-interface GigabitEthernet1 \
+  --circuit-id 20 \
+  --qos-input 500 \
+  --qos-output 500 \
+  --vlan-id 20 \
+  --vlan-id-outer 600 \
+  --pw-id 20 \
+  --irb-ipaddr 172.16.1.1/30 \
+  --irb-ipv6addr 2001:db8:1234:1234::1/127 \
+  --ipv4-lan 172.17.0.0/16 \
+  --ipv4-nexthop 172.16.1.2 \
+  --ipv6-lan 2001:db8:2222::/48 \
+  --ipv6-nexthop 2001:db8:1234:1234::2 \
+  --pe-device pe-juniper-01 \
+  --service-type p2p
+
+==== SCENARIO WITH DEVICES CONFIGURATIONS KEPT IN YAML FILES. IN THIS CASE, THERE WON'T BE ANY PREVIOUS CUSTOMER CONFIGURATION AS IT IS PARSED FROM THE YAML OR JSON FILE PROVIDED BY THE USER UPON SCRIPT EXECUTION
+
+# Generating the configuration files for the customer LEONARDOFURTADO using a YAML recipe
+python netprovisioncli_generate.py --recipe recipes/customers/LEONARDOFURTADO.yaml 
+
+# Generating the configuration files for the customer LEONARDOFURTADO using a JSON recipe
+python netprovisioncli_generate.py --recipe recipes/customers/LEONARDOFURTADO.json
+
+# Deploying the configuration files for the customer LEONARDOFURTADO
+python netprovisioncli_deploy.py --customer-name LEONARDOFURTADO --username lfurtado --password Juniper --access-device Aa-cisco-01 --pe-device pe-juniper-01
+
+==== SCENARIO WITH BOTH DEVICES AND CUSTOMER + SERVICE CONFIGURATIONS KEPT IN MONGODB
+
+# Switch data source to MongoDB
+python netprovisioncli_settings.py --set-source mongodb
+
+# Verify settings
+python netprovisioncli_settings.py --show
+
+# Run the script to generate the configuration using MongoDB as the data source
+python netprovisioncli_generate.py --customer-name LEONARDOFURTADO
