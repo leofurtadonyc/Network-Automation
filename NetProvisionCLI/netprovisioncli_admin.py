@@ -1,5 +1,6 @@
 import argparse
 import yaml
+import json
 import getpass
 from pymongo import MongoClient
 from prettytable import PrettyTable
@@ -18,9 +19,10 @@ def load_settings():
         print(f"Error parsing settings.yaml file: {e}")
         return {}
 
-def authenticate_user(username):
+def authenticate_user(username, password=None):
     """Authenticate user using stored credentials."""
-    password = getpass.getpass(prompt='Password: ')
+    if password is None:
+        password = getpass.getpass(prompt='Password: ')
 
     try:
         with open('devices/usercredentials.sec', 'r') as file:
@@ -74,8 +76,14 @@ def validate_and_transform_customer_data(customer_data):
     return transformed_data
 
 def add_or_update_customer(connection_string, database_name, recipe_file):
-    with open(recipe_file, 'r') as file:
-        customer_data = yaml.safe_load(file)['customer']
+    if recipe_file.endswith('.yaml') or recipe_file.endswith('.yml'):
+        with open(recipe_file, 'r') as file:
+            customer_data = yaml.safe_load(file)['customer']
+    elif recipe_file.endswith('.json'):
+        with open(recipe_file, 'r') as file:
+            customer_data = json.load(file)['customer']
+    else:
+        raise ValueError("Unsupported file format. Use .yaml, .yml, or .json")
 
     customer_data = validate_and_transform_customer_data(customer_data)
 
@@ -106,8 +114,14 @@ def remove_customer(connection_string, database_name, customer_name):
         print(f"Customer {customer_name} not found.")
 
 def add_or_update_device(connection_string, database_name, device_file):
-    with open(device_file, 'r') as file:
-        device_data = yaml.safe_load(file)['devices']
+    if device_file.endswith('.yaml') or device_file.endswith('.yml'):
+        with open(device_file, 'r') as file:
+            device_data = yaml.safe_load(file)['devices']
+    elif device_file.endswith('.json'):
+        with open(device_file, 'r') as file:
+            device_data = json.load(file)['devices']
+    else:
+        raise ValueError("Unsupported file format. Use .yaml, .yml, or .json")
 
     client = MongoClient(connection_string)
     db = client[database_name]
@@ -148,13 +162,19 @@ def main():
 
     parser = argparse.ArgumentParser(description="Manage MongoDB entries for customers and devices.")
     parser.add_argument("--username", type=str, required=True, help="Username for authentication.")
-    parser.add_argument("--recipe", type=str, help="Path to a YAML file containing the customer recipe.")
-    parser.add_argument("--device", type=str, action='append', help="Path to a YAML file containing the device details (can specify multiple).")
+    parser.add_argument("--password", type=str, help="Password for authentication.")
+    parser.add_argument("--recipe", type=str, help="Path to a YAML or JSON file containing the customer recipe.")
+    parser.add_argument("--device", type=str, action='append', help="Path to a YAML or JSON file containing the device details (can specify multiple).")
     parser.add_argument("--remove", action='store_true', help="Flag to remove a customer or device.")
     parser.add_argument("--customer", type=str, help="Customer name to query, add, or remove.")
     args = parser.parse_args()
 
-    if not authenticate_user(args.username):
+    if args.password:
+        authenticated = authenticate_user(args.username, args.password)
+    else:
+        authenticated = authenticate_user(args.username)
+
+    if not authenticated:
         return
 
     if args.recipe and args.customer:
