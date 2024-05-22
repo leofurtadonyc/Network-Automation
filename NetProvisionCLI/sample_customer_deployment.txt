@@ -10,7 +10,7 @@ python netprovisioncli_settings.py --show
 python netprovisioncli_generate.py \
   --customer-name LEONARDOFURTADO \
   --access-device a-cisco-01 \
-  --access-interface GigabitEthernet1 \
+  --access-interface GigabitEthernet2 \
   --circuit-id 20 \
   --qos-input 500 \
   --qos-output 500 \
@@ -37,7 +37,7 @@ python netprovisioncli_generate.py --recipe recipes/customers/LEONARDOFURTADO.js
 # Deploying the configuration files for the customer LEONARDOFURTADO
 python netprovisioncli_deploy.py --customer-name LEONARDOFURTADO --username lfurtado --password Juniper --access-device Aa-cisco-01 --pe-device pe-juniper-01
 
-==== SCENARIO WITH BOTH DEVICES AND CUSTOMER + SERVICE CONFIGURATIONS KEPT IN MONGODB
+==== SCENARIO WITH BOTH DEVICES AND CUSTOMER + SERVICE CONFIGURATIONS KEPT IN MONGODB, DEPLOYMENT CONFIGS AND AUDIT LOGS IN INFLUXDB
 
 # Switch data source to MongoDB
 python netprovisioncli_settings.py --set-source mongodb
@@ -45,5 +45,22 @@ python netprovisioncli_settings.py --set-source mongodb
 # Verify settings
 python netprovisioncli_settings.py --show
 
+# Add the customer to MongoDB from a recipe file (YAML or JSON)
+python netprovisioncli_admin.py --recipe recipes/customers/LEONARDOFURTADO.yaml --username lfurtado
+
 # Run the script to generate the configuration using MongoDB as the data source
 python netprovisioncli_generate.py --customer-name LEONARDOFURTADO
+
+# Query for the user in MongoDB
+python netprovisioncli_query.py --customer LEONARDOFURTADO
+python netprovisioncli_query.py --customer LEONARDOFURTADO --device a-cisco-01 --device pe-juniper-01
+
+# Listing all deployments
+python netprovisioncli_commitdb.py --deployment-list
+
+# Checking for one particular deployment
+python netprovisioncli_commitdb.py --deployment-id 20240522_203634
+
+# Diff-check new vs. previous deployment
+python netprovisioncli_commitdb.py --diff-check 20240522_203634 20240522_202612
+

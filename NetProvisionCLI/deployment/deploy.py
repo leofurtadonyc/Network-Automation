@@ -44,6 +44,42 @@ def find_latest_config(customer_name: str, device_name: str, influx_client=None)
             return result[0].records[0].get_value()
         return None
 
+def find_previous_deployment_id(customer_name: str, influx_client, current_deployment_id: str) -> Optional[str]:
+    """Find the most recent deployment ID for a customer prior to the current deployment."""
+    query = f'''
+    from(bucket: "{influxdb_bucket}")
+    |> range(start: -30d)
+    |> filter(fn: (r) => r._measurement == "audit_logs" and r.customer_name == "{customer_name}")
+    |> sort(columns: ["_time"], desc: true)
+    '''
+    result = influx_client.query_api().query(query=query, org=influxdb_org)
+    
+    deployment_ids = []
+    
+    for table in result:
+        for record in table.records:
+            deployment_id = record.values["deployment_id"]
+            deployment_ids.append(deployment_id)
+
+    print(f"Deployment IDs: {deployment_ids}")  # Debug statement
+
+    if current_deployment_id not in deployment_ids:
+        deployment_ids.append(current_deployment_id)
+        print(f"Added current deployment ID: {current_deployment_id}")  # Debug statement
+
+    deployment_ids.sort()
+
+    print(f"Sorted Deployment IDs: {deployment_ids}")  # Debug statement
+
+    current_index = deployment_ids.index(current_deployment_id)
+    if current_index > 0:
+        previous_deployment_id = deployment_ids[current_index - 1]
+        print(f"Previous Deployment ID: {previous_deployment_id}")  # Debug statement
+        return previous_deployment_id
+    else:
+        print("No previous deployment ID found.")  # Debug statement
+        return None
+
 def parse_time_from_filename(filename: str) -> Optional[datetime.datetime]:
     """Extract and parse the datetime from the filename."""
     try:
@@ -107,16 +143,17 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     audit_entries = []
 
+    deployment_id = datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
     influx_client = InfluxDBClient(url=influxdb_url, token=influxdb_token, org=influxdb_org) if data_source == 'mongodb' else None
 
-    start_time = time.time()
-    deployment_id = datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    previous_deployment_id = None
+    if influx_client:
+        previous_deployment_id = find_previous_deployment_id(customer_name, influx_client, deployment_id)
     print(f"Deployment started by {operator} from IP {operator_ip} at {datetime.datetime.now()}")
 
     config_suffixes = ['config_remove', 'config', 'config_deactivate']
     all_configs = defaultdict(list)
 
-    # Collect and verify all necessary config files before deployment
     for device_name, config_action in device_names.items():
         if device_name not in devices:
             print(f"Device {device_name} not found in device configuration.")
@@ -136,6 +173,7 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
     if not all_configs:
         return "Deployment aborted. No configuration files found."
 
+    start_time = time.time()
     try:
         for device_name, configs in all_configs.items():
             previous_config_path = find_latest_config(customer_name, device_name, influx_client)  # Find the latest config before any changes
@@ -150,16 +188,16 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
                 commands = prepare_device_commands(device_type, configuration)
                 for command in commands:
                     channel.send(command + '\n')
-                    time.sleep(2)  # Ensure the command gets executed
+                    time.sleep(2)
 
                 ssh_client.close()
 
                 is_deactivate = suffix == 'config_deactivate'
                 is_new_config = suffix == 'config'
 
-                if is_new_config or is_deactivate:  # Only log active and deactivate configurations
+                if is_new_config or is_deactivate:
                     diff_results = ""
-                    if is_new_config:  # Only compare diffs for new configurations
+                    if is_new_config:
                         diff_results = compare_configurations(configuration, previous_config_path)
 
                     if data_source == 'yaml':
@@ -184,7 +222,7 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
                         timestamp=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
                         elapsed_time=f"Deployment completed in {time.time() - start_time:.2f} seconds"
                     )
-                    audit_entries.append(audit_entry)  # Store as dict for further processing
+                    audit_entries.append(audit_entry)
 
         if data_source == 'yaml':
             audit_path = write_audit_log(customer_name, audit_entries)
@@ -198,6 +236,10 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
 
             print(f"Deployment ID for audit log: {deployment_id}")
             print(f"To check the audit log entries for this deployment from InfluxDB, use: python netprovisioncli_commitdb.py --deployment-id {deployment_id}")
+            if previous_deployment_id:
+                print(f"To compare (diff check) the deployed configuration with the previously deployed one, use: python netprovisioncli_commitdb.py --diff-check {deployment_id} {previous_deployment_id}")
+            else:
+                print("No previous deployment ID found to compare.")  # Debug statement
             print("Deployment completed successfully. Detailed audit log saved in InfluxDB.")
             cleanup_generated_configs(customer_name)
 
@@ -226,3 +268,4 @@ def load_devices(source: str, customer_name: str = None) -> tuple:
         return load_mongodb(conn_string, db_name, customer_name)
     else:
         return {}, {}, f"Unsupported source: {source}"
+    
