@@ -60,7 +60,9 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
     if not verify_user(username, password):
         return "Authentication failed. Check username and password."
 
-    devices = load_yaml('devices/network_devices.yaml')
+    devices, _, _ = load_yaml('devices/network_devices.yaml')
+    # print("Loaded devices from YAML:", devices)  # Debug statement to print the loaded devices
+
     operator = get_current_user()
     operator_ip = get_ip_address()
     ssh_client = paramiko.SSHClient()
@@ -76,16 +78,17 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
 
     # Collect and verify all necessary config files before deployment
     for device_name, config_action in device_names.items():
+        if device_name not in devices:
+            print(f"Device {device_name} not found in device configuration.")
+            print("Available devices:", list(devices.keys()))  # Debug statement to list available devices
+            return f"Deployment aborted. Device not found: {device_name}"
+
         for suffix in config_suffixes:
             config_type = f"{config_action}_{suffix}.txt"
             config_file_name = f"{customer_name}_{device_name}_{config_type}"
             config_file_path = f"generated_configs/{config_file_name}"
 
             if os.path.exists(config_file_path):
-                if device_name not in devices:
-                    print(f"Device {device_name} not found in device configuration.")
-                    return f"Deployment aborted. Device not found: {device_name}"
-
                 all_configs[device_name].append((config_file_path, devices[device_name]['ip_address'], devices[device_name]['device_type'], suffix))
                 print(f"Added configuration for {device_name}: {config_file_path}")
 
