@@ -61,15 +61,11 @@ def find_previous_deployment_id(customer_name: str, influx_client, current_deplo
             deployment_id = record.values["deployment_id"]
             deployment_ids.append(deployment_id)
 
-    # print(f"Deployment IDs: {deployment_ids}")  # Debug statement
-
     if current_deployment_id not in deployment_ids:
         deployment_ids.append(current_deployment_id)
         print(f"Added current deployment ID: {current_deployment_id}")  # Debug statement
 
     deployment_ids.sort()
-
-    # print(f"Sorted Deployment IDs: {deployment_ids}")  # Debug statement
 
     current_index = deployment_ids.index(current_deployment_id)
     if current_index > 0:
@@ -204,7 +200,7 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
                         deployed_config_path = save_deployed_config(customer_name, device_name, configuration)
                     elif data_source == 'mongodb':
                         write_api = influx_client.write_api(write_options=SYNCHRONOUS)
-                        point = Point("deployed_configs").tag("customer_name", customer_name).tag("device_name", device_name).field("config_content", configuration).time(datetime.datetime.utcnow(), write_precision='s')
+                        point = Point("deployed_configs").tag("customer_name", customer_name).tag("device_name", device_name).field("config_content", configuration).tag("operator", operator).time(datetime.datetime.utcnow(), write_precision='s')
                         write_api.write(bucket=influxdb_bucket, org=influxdb_org, record=point)
                         print(f"Written deployed config for {device_name} to InfluxDB.")  # Debug statement
                         deployed_config_path = configuration
@@ -231,7 +227,7 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
         elif data_source == 'mongodb':
             write_api = influx_client.write_api(write_options=SYNCHRONOUS)
             for entry in audit_entries:
-                point = Point("audit_logs").tag("customer_name", customer_name).tag("deployment_id", deployment_id).field("entry", json.dumps(entry)).time(datetime.datetime.utcnow(), write_precision='s')
+                point = Point("audit_logs").tag("customer_name", customer_name).tag("deployment_id", deployment_id).field("entry", json.dumps(entry)).tag("operator", operator).time(datetime.datetime.utcnow(), write_precision='s')
                 write_api.write(bucket=influxdb_bucket, org=influxdb_org, record=point)
 
             print(f"Deployment ID for audit log: {deployment_id}")
@@ -268,4 +264,3 @@ def load_devices(source: str, customer_name: str = None) -> tuple:
         return load_mongodb(conn_string, db_name, customer_name)
     else:
         return {}, {}, f"Unsupported source: {source}"
-    
