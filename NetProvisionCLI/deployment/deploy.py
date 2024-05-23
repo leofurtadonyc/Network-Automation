@@ -61,7 +61,7 @@ def find_previous_deployment_id(customer_name: str, influx_client, current_deplo
             deployment_id = record.values["deployment_id"]
             deployment_ids.append(deployment_id)
 
-    print(f"Deployment IDs: {deployment_ids}")  # Debug statement
+    # print(f"Deployment IDs: {deployment_ids}")  # Debug statement
 
     if current_deployment_id not in deployment_ids:
         deployment_ids.append(current_deployment_id)
@@ -69,12 +69,12 @@ def find_previous_deployment_id(customer_name: str, influx_client, current_deplo
 
     deployment_ids.sort()
 
-    print(f"Sorted Deployment IDs: {deployment_ids}")  # Debug statement
+    # print(f"Sorted Deployment IDs: {deployment_ids}")  # Debug statement
 
     current_index = deployment_ids.index(current_deployment_id)
     if current_index > 0:
         previous_deployment_id = deployment_ids[current_index - 1]
-        print(f"Previous Deployment ID: {previous_deployment_id}")  # Debug statement
+        print(f"This customer's most recent (previous) Deployment ID: {previous_deployment_id}")  # Debug statement
         return previous_deployment_id
     else:
         print("No previous deployment ID found.")  # Debug statement
