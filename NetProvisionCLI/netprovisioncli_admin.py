@@ -5,6 +5,7 @@ import getpass
 from pymongo import MongoClient
 from prettytable import PrettyTable
 import bcrypt
+import glob
 
 def load_settings():
     """Load settings from the settings.yaml file."""
@@ -163,7 +164,7 @@ def main():
     parser = argparse.ArgumentParser(description="Manage MongoDB entries for customers and devices.")
     parser.add_argument("--username", type=str, required=True, help="Username for authentication.")
     parser.add_argument("--password", type=str, help="Password for authentication.")
-    parser.add_argument("--recipe", type=str, help="Path to a YAML or JSON file containing the customer recipe.")
+    parser.add_argument("--recipe", type=str, nargs='*', help="Paths to YAML or JSON files containing the customer recipes (can use globs).")
     parser.add_argument("--device", type=str, action='append', help="Path to a YAML or JSON file containing the device details (can specify multiple).")
     parser.add_argument("--remove", action='store_true', help="Flag to remove a customer or device.")
     parser.add_argument("--customer", type=str, help="Customer name to query, add, or remove.")
@@ -177,12 +178,11 @@ def main():
     if not authenticated:
         return
 
-    if args.recipe and args.customer:
-        print("Error: Cannot use --recipe and --customer together.")
-        return
-
     if args.recipe:
-        add_or_update_customer(connection_string, database_name, args.recipe)
+        for recipe_pattern in args.recipe:
+            recipe_files = glob.glob(recipe_pattern)
+            for recipe_file in recipe_files:
+                add_or_update_customer(connection_string, database_name, recipe_file)
 
     if args.customer and args.remove:
         remove_customer(connection_string, database_name, args.customer)
