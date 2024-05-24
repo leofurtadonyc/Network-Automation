@@ -2,6 +2,8 @@ import yaml
 import os
 import argparse
 import sys
+import getpass
+from security.auth import verify_user
 
 def load_settings():
     settings_path = 'settings/settings.yaml'
@@ -41,11 +43,18 @@ def show_settings():
     print("Current Settings:")
     print(yaml.safe_dump(settings, default_flow_style=False))
 
+def authenticate_user(username, password):
+    if not verify_user(username, password):
+        print("Authentication failed.")
+        sys.exit(1)
+
 def main():
     parser = argparse.ArgumentParser(description='Manage settings for NetProvisionCLI.')
     parser.add_argument('--set-source', type=str, help='Set the data source (yaml, mongodb)')
     parser.add_argument('--show', action='store_true', help='Show current settings')
     parser.add_argument('--init', action='store_true', help='Initialize or reset settings to default')
+    parser.add_argument('--username', type=str, help='Username for authentication')
+    parser.add_argument('--password', type=str, help='Password for authentication')
 
     args = parser.parse_args()
 
@@ -55,12 +64,20 @@ def main():
         print("\nNo options provided. Use one of the flags to manage settings.")
         return
 
-    if args.set_source:
-        set_data_source(args.set_source)
-    elif args.show:
+    if args.show:
         show_settings()
-    elif args.init:
-        initialize_settings()
+    else:
+        if not args.username:
+            print("Error: --username is required for authentication when changing settings.")
+            sys.exit(1)
+        if not args.password:
+            args.password = getpass.getpass(prompt='Password: ')
+        authenticate_user(args.username, args.password)
+
+        if args.set_source:
+            set_data_source(args.set_source)
+        elif args.init:
+            initialize_settings()
 
 if __name__ == '__main__':
     main()
