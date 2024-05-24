@@ -175,18 +175,22 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
             previous_config_path = find_latest_config(customer_name, device_name, influx_client)  # Find the latest config before any changes
             for config_file_path, ip_address, device_type, suffix in configs:
                 print(f"Deploying configuration for {device_name} from {config_file_path}")
-                ssh_client.connect(ip_address, username=username, password=password, timeout=10)
-                channel = ssh_client.invoke_shell()
+                try:
+                    ssh_client.connect(ip_address, username=username, password=password, timeout=10)
+                    channel = ssh_client.invoke_shell()
 
-                with open(config_file_path, 'r') as file:
-                    configuration = file.read()
+                    with open(config_file_path, 'r') as file:
+                        configuration = file.read()
 
-                commands = prepare_device_commands(device_type, configuration)
-                for command in commands:
-                    channel.send(command + '\n')
-                    time.sleep(2)
+                    commands = prepare_device_commands(device_type, configuration)
+                    for command in commands:
+                        channel.send(command + '\n')
+                        time.sleep(2)
 
-                ssh_client.close()
+                    ssh_client.close()
+
+                except paramiko.ssh_exception.SSHException as e:
+                    return f"Deployment failed for {device_name} with error: {str(e)}. Please retry the operation."
 
                 is_deactivate = suffix == 'config_deactivate'
                 is_new_config = suffix == 'config'
@@ -230,14 +234,16 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
                 point = Point("audit_logs").tag("customer_name", customer_name).tag("deployment_id", deployment_id).field("entry", json.dumps(entry)).tag("operator", operator).time(datetime.datetime.utcnow(), write_precision='s')
                 write_api.write(bucket=influxdb_bucket, org=influxdb_org, record=point)
 
-            print(f"Deployment ID for audit log: {deployment_id}")
-            print(f"To check the audit log entries for this deployment from InfluxDB, use: python netprovisioncli_commitdb.py --deployment-id {deployment_id}")
+            print(f"=== Cleanup of temporary generated configs ===")
+            cleanup_generated_configs(customer_name)
+            print(f"=== End of cleanup ===")
+            print(f"Deployment issued by user {operator} for customer {customer_name} completed successfully in {time.time() - start_time:.2f} seconds.")
+            print(f"Detailed audit log saved in InfluxDB under deployment ID {deployment_id}.")
+            print(f"To check the audit log entries for this deployment, use: python netprovisioncli_commitdb.py --deployment-id {deployment_id}")
             if previous_deployment_id:
-                print(f"To compare (diff check) the deployed configuration with the previously deployed one, use: python netprovisioncli_commitdb.py --diff-check {deployment_id} {previous_deployment_id}")
+                print(f"To compare the new deployment with the previous configurations, use: python netprovisioncli_commitdb.py --diff-check {deployment_id} {previous_deployment_id}")
             else:
                 print("No previous deployment ID found to compare.")  # Debug statement
-            print("Deployment completed successfully. Detailed audit log saved in InfluxDB.")
-            cleanup_generated_configs(customer_name)
 
     except Exception as e:
         ssh_client.close()
