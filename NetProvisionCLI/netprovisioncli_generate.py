@@ -14,10 +14,7 @@ def validate_arguments(args, from_mongo=False):
     missing_args = []
 
     if from_mongo:
-        required_args = ['customer_name', 'access_device', 'access_interface', 'circuit_id', 
-                         'qos_input', 'qos_output', 'vlan_id', 'vlan_id_outer', 'pw_id', 
-                         'irb_ipaddr', 'irb_ipv6addr', 'ipv4_lan', 'ipv4_nexthop', 
-                         'ipv6_lan', 'ipv6_nexthop', 'pe_device', 'service_type']
+        required_args = ['customer_name']
     else:
         required_args = ['customer_name', 'access_device', 'access_interface', 'circuit_id', 
                          'qos_input', 'qos_output', 'vlan_id', 'vlan_id_outer', 'pw_id', 
@@ -28,7 +25,7 @@ def validate_arguments(args, from_mongo=False):
         required_args = ['customer_name', 'access_device', 'pe_device']
 
     for arg in required_args:
-        if getattr(args, arg) is None:
+        if getattr(args, arg, None) is None:
             missing_args.append(f'--{arg.replace("_", "-")}')
 
     if missing_args:
@@ -37,35 +34,43 @@ def validate_arguments(args, from_mongo=False):
 def main():
     settings = load_settings()
     data_source = settings['data_source']
-    parser = argparse.ArgumentParser(description="Generate service provisioning configurations for network devices.")
+    parser = argparse.ArgumentParser(description=f"Generate service provisioning configurations for network devices.\n(Data source: {data_source})")
+    
+    # Add common arguments
     parser.add_argument("--customer-name", type=str, help="Customer name for the service.")
-    parser.add_argument("--access-device", type=str, help="Hostname of the access device.")
-    parser.add_argument("--access-interface", type=str, help="Interface name on the access device.")
-    parser.add_argument("--circuit-id", type=int, help="Circuit ID for the service.")
-    parser.add_argument("--qos-input", type=int, help="Input QoS policer in bits.")
-    parser.add_argument("--qos-output", type=int, help="Output QoS policer in bits.")
-    parser.add_argument("--vlan-id", type=int, help="VLAN ID (1-4095).")
-    parser.add_argument("--vlan-id-outer", type=int, help="Outer VLAN ID (1-4095).")
-    parser.add_argument("--pw-id", type=int, help="Pseudowire ID.")
-    parser.add_argument("--irb-ipaddr", type=valid_ip_irb, help="IP address for the BVI or IRB PE interface.")
-    parser.add_argument("--irb-ipv6addr", type=valid_ip_irb, help="IPv6 address for the BVI or IRB PE interface.")
-    parser.add_argument("--ipv4-lan", type=valid_ip_lan, help="Customer IPv4 LAN network. Format prefix/mask.")
-    parser.add_argument("--ipv4-nexthop", type=valid_ip_nexthop, help="IPv4 next-hop address to customer's LAN")
-    parser.add_argument("--ipv6-lan", type=valid_ip_lan, help="Customer IPv6 LAN network. Format prefix/mask.")
-    parser.add_argument("--ipv6-nexthop", type=valid_ip_nexthop, help="IPv6 next-hop address to customer's LAN")
-    parser.add_argument("--pe-device", type=str, help="Hostname of the Provider Edge device.")
-    parser.add_argument("--service-type", choices=['p2p', 'p2mp'], help="Service type: point-to-point or point-to-multipoint.")
-    parser.add_argument("--interactive", action='store_true', help="Run the script in interactive mode to gather input from the operator.")
-    parser.add_argument("--recipe", type=str, help="Path to a YAML or JSON file containing the recipe for customer service activation.")
     parser.add_argument("--deactivate", action='store_true', help="Deactivate the specified customer name.")
+    
+    if data_source == 'yaml':
+        parser.add_argument("--access-device", type=str, help="Hostname of the access device.")
+        parser.add_argument("--access-interface", type=str, help="Interface name on the access device.")
+        parser.add_argument("--circuit-id", type=int, help="Circuit ID for the service.")
+        parser.add_argument("--qos-input", type=int, help="Input QoS policer in bits.")
+        parser.add_argument("--qos-output", type=int, help="Output QoS policer in bits.")
+        parser.add_argument("--vlan-id", type=int, help="VLAN ID (1-4095).")
+        parser.add_argument("--vlan-id-outer", type=int, help="Outer VLAN ID (1-4095).")
+        parser.add_argument("--pw-id", type=int, help="Pseudowire ID.")
+        parser.add_argument("--irb-ipaddr", type=valid_ip_irb, help="IP address for the BVI or IRB PE interface.")
+        parser.add_argument("--irb-ipv6addr", type=valid_ip_irb, help="IPv6 address for the BVI or IRB PE interface.")
+        parser.add_argument("--ipv4-lan", type=valid_ip_lan, help="Customer IPv4 LAN network. Format prefix/mask.")
+        parser.add_argument("--ipv4-nexthop", type=valid_ip_nexthop, help="IPv4 next-hop address to customer's LAN")
+        parser.add_argument("--ipv6-lan", type=valid_ip_lan, help="Customer IPv6 LAN network. Format prefix/mask.")
+        parser.add_argument("--ipv6-nexthop", type=valid_ip_nexthop, help="IPv6 next-hop address to customer's LAN")
+        parser.add_argument("--pe-device", type=str, help="Hostname of the Provider Edge device.")
+        parser.add_argument("--service-type", choices=['p2p', 'p2mp'], help="Service type: point-to-point or point-to-multipoint.")
+        parser.add_argument("--recipe", type=str, help="Path to a YAML or JSON file containing the recipe for customer service activation.")
+        parser.add_argument("--interactive", action='store_true', help="Run the script in interactive mode to gather input from the operator.")
 
     args = parser.parse_args()
+
+    if not any(vars(args).values()):
+        parser.print_help()
+        return
 
     devices_config = None
     access_device_info = None
     pe_device_info = None
 
-    if args.recipe:
+    if hasattr(args, 'recipe') and args.recipe:
         recipe_data = load_recipe(args.recipe)
         args.customer_name = recipe_data['customer']['name']
         args.access_device = recipe_data['customer']['devices']['access']['name']
@@ -85,8 +90,25 @@ def main():
         args.pe_device = recipe_data['customer']['devices']['pe']['name']
         args.service_type = recipe_data['customer']['service_type']
         devices_config, _, _ = load_devices('yaml')
-    elif args.interactive:
+    elif hasattr(args, 'interactive') and args.interactive and data_source == 'yaml':
         customer_name, access_device, access_interface, circuit_id, qos_input, qos_output, vlan_id, vlan_id_outer, pw_id, irb_ipaddr, irb_ipv6addr, ipv4_lan, ipv4_nexthop, ipv6_lan, ipv6_nexthop, pe_device, service_type = collect_inputs()
+        args.customer_name = customer_name
+        args.access_device = access_device
+        args.access_interface = access_interface
+        args.circuit_id = circuit_id
+        args.qos_input = qos_input
+        args.qos_output = qos_output
+        args.vlan_id = vlan_id
+        args.vlan_id_outer = vlan_id_outer
+        args.pw_id = pw_id
+        args.irb_ipaddr = irb_ipaddr
+        args.irb_ipv6addr = irb_ipv6addr
+        args.ipv4_lan = ipv4_lan
+        args.ipv4_nexthop = ipv4_nexthop
+        args.ipv6_lan = ipv6_lan
+        args.ipv6_nexthop = ipv6_nexthop
+        args.pe_device = pe_device
+        args.service_type = service_type
     else:
         if data_source == 'yaml':
             devices_config, _, _ = load_devices(data_source)
@@ -115,6 +137,7 @@ def main():
             args.ipv6_nexthop = customer_data['customer_details']['service_details']['ipv6_nexthop']
             args.pe_device = customer_data['customer_details']['devices']['pe']['name']
             args.service_type = 'p2p'
+            args.deactivate = getattr(args, 'deactivate', False)  # Ensure deactivate is defined
 
     try:
         validate_arguments(args, from_mongo=(data_source == 'mongodb'))
@@ -251,7 +274,7 @@ def main():
             pe_template_name_remove = "p2p_huawei_vrp_to_generic_remove.j2"
         elif pe_device_info['device_type'] == 'huawei_vrp' and args.service_type == 'p2mp':
             pe_template_name = "p2mp_huawei_vrp_to_generic.j2"
-            pe_template_name_remove = "p2p_huawei_vrp_to_generic_remove.j2"
+            pe_template_name_remove = "p2mp_huawei_vrp_to_generic_remove.j2"
         elif pe_device_info['device_type'] == 'huawei_vrp_xpl' and args.service_type == 'p2p':
             pe_template_name = "p2p_huawei_vrp_xpl_to_generic.j2"
             pe_template_name_remove = "p2p_huawei_vrp_xpl_to_generic_remove.j2"
