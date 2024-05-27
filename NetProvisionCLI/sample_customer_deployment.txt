@@ -64,3 +64,13 @@ python netprovisioncli_commitdb.py --deployment-id 20240522_203634
 # Diff-check new vs. previous deployment
 python netprovisioncli_commitdb.py --diff-check 20240522_203634 20240522_202612
 
+# Exporting device and customers' service activation data to an XLS spreadsheet
+python netprovisioncli_export.py --export
+
+# Backing up MongoDB database and InfluxDB bucket
+python netprovisioncli_backup.py --export-influx --export-mongo
+
+# Restoring MongoDB database and InfluxDB bucket
+python netprovisioncli_restore.py --import-mongo --mongo-input export_data/mongodb_export.json 
+
+
