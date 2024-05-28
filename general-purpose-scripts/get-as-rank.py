@@ -1,9 +1,8 @@
-# This script is a slight modification of the original asrank-download-asn.py script; it uses tabulate to display the returned data instead of JSON.
-# https://github.com/leofurtadonyc/Network-Automation/wiki
 import argparse
 import sys
 import requests
 from tabulate import tabulate
+import pyfiglet
 
 URL = "https://api.asrank.caida.org/v2/graphql"
 
@@ -13,6 +12,10 @@ def create_parser():
     return parser
 
 def main():
+    print_banner = pyfiglet.figlet_format("Get AS Rank")
+    print(print_banner)
+    print("https://github.com/leofurtadonyc/Network-Automation")
+    print()
     parser = create_parser()
     args = parser.parse_args()
 
