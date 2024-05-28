@@ -11,6 +11,7 @@ IANA_URL = "https://www.wireshark.org/download/automated/data/manuf"
 def print_banner():
     ascii_banner = pyfiglet.figlet_format("MAC FINDER")
     print(ascii_banner)
+    print("https://github.com/leofurtadonyc/Network-Automation")
 
 def fetch_iana_mac_vendors():
     try:

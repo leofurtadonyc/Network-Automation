@@ -1,6 +1,6 @@
-# https://github.com/leofurtadonyc/Network-Automation/wiki
 import subprocess
 import argparse
+import pyfiglet
 
 def fetch_whois_data(query_type, query_value):
     """Fetch whois data for given type (ASN or AS-SET)."""
@@ -12,6 +12,10 @@ def fetch_whois_data(query_type, query_value):
         return f"Failed to fetch whois data: {e}"
 
 def main():
+    print_banner = pyfiglet.figlet_format("Get Who-Is")
+    print(print_banner)
+    print("https://github.com/leofurtadonyc/Network-Automation")
+    print()
     parser = argparse.ArgumentParser(description="Fetch WHOIS data for ASN and AS-SET.")
     parser.add_argument("asn", type=str, help="Autonomous System Number (ASN).")
     parser.add_argument("as_set", type=str, help="AS-SET name.")

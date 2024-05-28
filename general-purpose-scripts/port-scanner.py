@@ -12,12 +12,13 @@ IANA_URL = "https://www.iana.org/assignments/service-names-port-numbers/service-
 def print_banner():
     ascii_banner = pyfiglet.figlet_format("PORT SCANNER")
     print(ascii_banner)
+    print("https://github.com/leofurtadonyc/Network-Automation")
 
 def validate_args():
     parser = argparse.ArgumentParser(description="Port Scanner")
     parser.add_argument("target", help="Target IP address or hostname")
     parser.add_argument("--udp", action="store_true", help="Include UDP ports in the service discovery")
-    parser.add_argument("--check-iana", action="store_true", help="Check IANA for service names and port numbers")
+    parser.add_argument("--check-iana", action="store_true", help="Check IANA website for service names and port numbers")
     args = parser.parse_args()
     
     try:

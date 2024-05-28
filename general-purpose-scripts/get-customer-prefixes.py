@@ -3,6 +3,7 @@ import argparse
 import requests
 import json
 import subprocess
+import pyfiglet
 
 def get_peeringdb_data(asn):
     """Check the ASN details on PeeringDB"""
@@ -40,6 +41,10 @@ def check_as_set_existence(as_set):
     return True, result.stdout
 
 def main(asn):
+    print_banner = pyfiglet.figlet_format("Get Prefixes")
+    print(print_banner)
+    print("https://github.com/leofurtadonyc/Network-Automation")
+    print()
     data = get_peeringdb_data(asn)
     if not data:
         print(f"The reported ASN does not have a record in PeeringDB, prefix validation will be aborted. Contact and resolve the problem directly with the customer.")

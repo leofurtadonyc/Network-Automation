@@ -1,11 +1,7 @@
-# This is a simple script that interacts with PeeringDB's API. 
-# Its main purpose is to check the provided Autonomous System Number (ASN) in PeeringDB, with a special emphasis on the AS-SET field. 
-# This information can then be used by other scripts to generate prefix-lists and route-filter-lists for routing security policies.
-# https://github.com/leofurtadonyc/Network-Automation/wiki
-
 import argparse
 import requests
 import sys
+import pyfiglet
 
 BASE_URL = "https://peeringdb.com/api"
 
@@ -38,6 +34,10 @@ def get_org_data(org_id):
 
 
 def main():
+    print_banner = pyfiglet.figlet_format("Get AS-SET")
+    print(print_banner)
+    print("https://github.com/leofurtadonyc/Network-Automation")
+    print()
     parser = argparse.ArgumentParser(description="Query ASN details on PeeringDB.")
     parser.add_argument("asn", type=int, help="Autonomous System Number (ASN).")
     args = parser.parse_args()

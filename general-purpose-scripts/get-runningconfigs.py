@@ -8,6 +8,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from netmiko import ConnectHandler, NetmikoTimeoutException, NetmikoAuthenticationException
 import getpass
+import pyfiglet
 
 log_file = 'netmiko.log'
 
@@ -82,6 +83,10 @@ def retrieve_config(device_details, username, password):
             connection.disconnect()
 
 def main(file_name, max_workers, ip_address=None):
+    print_banner = pyfiglet.figlet_format("Get Run-Configs")
+    print(print_banner)
+    print("https://github.com/leofurtadonyc/Network-Automation")
+    print()
     username = input("Enter username: ")
     password = getpass.getpass("Enter password: ")
 
