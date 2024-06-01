@@ -1,6 +1,7 @@
 import argparse
 import os
 import paramiko
+from paramiko import SSHException
 import yaml
 import bcrypt
 import socket
@@ -11,6 +12,8 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision, QueryApi
 from influxdb_client.client.write_api import SYNCHRONOUS
 from prettytable import PrettyTable
 from difflib import unified_diff
+import logging
+logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 # Helper function to read YAML settings
 def read_yaml(file_path):
@@ -37,7 +40,7 @@ def fetch_device_config(device_details, username, password):
     except Exception as e:
         print(f"Error: {str(e)}. This could be transient, please retry.")
         return None
-
+    
     try:
         if device_type in ['cisco_ios', 'cisco_xe', 'cisco_xr']:
             command = "show running-config"
@@ -167,6 +170,7 @@ def display_audit_history_yaml(last=None, date=None, device=None):
             operator = lines[2].split(":")[1].strip() if len(lines) > 2 else "N/A"
             config_filename = lines[4].split(":")[1].strip() if len(lines) > 4 else "N/A"
             table.add_row([device, operation, date_time, operator, config_filename])
+    table.max_width = 80
     print(table)
 
 # Helper function to display audit history from InfluxDB
@@ -191,7 +195,36 @@ def display_audit_history_influxdb(influx_settings, last=None, date=None, device
     for record in records:
         timestamp = datetime.fromtimestamp(record.get_time().timestamp()).strftime('%Y-%m-%d_%H:%M:%S')
         table.add_row([record.values["device"], record.values["operation"], timestamp, record.values["user"]])
+    table.max_width = 80
+    print(table)
+
+# Helper function to log purge audit in InfluxDB
+def log_purge_influxdb(user, influx_settings):
+    client = InfluxDBClient(url=influx_settings['url'], token=influx_settings['token'], org=influx_settings['org'])
+    write_api = client.write_api(write_options=SYNCHRONOUS)
+    point = Point("deviceConfigPurge") \
+        .tag("operation", "purge") \
+        .tag("user", user) \
+        .time(datetime.now(timezone.utc), WritePrecision.NS)
+    write_api.write(bucket=influx_settings['bucket'], org=influx_settings['org'], record=point)
     client.close()
+    print(f"Purge operation by {user} logged to InfluxDB")
+
+# Helper function to display purge history from InfluxDB
+def display_purge_history_influxdb(influx_settings):
+    client = InfluxDBClient(url=influx_settings['url'], token=influx_settings['token'], org=influx_settings['org'])
+    query_api = client.query_api()
+    query = f'from(bucket:"{influx_settings["bucket"]}") |> range(start: -30d) |> filter(fn: (r) => r._measurement == "deviceConfigPurge")'
+    tables = query_api.query(query)
+    records = [record for table in tables for record in table.records]
+    if not records:
+        print("No purge logs found.")
+        return
+    table = PrettyTable(["Operator", "Date and Time", "Operation"])
+    for record in records:
+        timestamp = datetime.fromtimestamp(record.get_time().timestamp()).strftime('%Y-%m-%d_%H:%M:%S')
+        table.add_row([record.values["user"], timestamp, record.values["operation"]])
+    table.max_width = 80
     print(table)
 
 # Helper function for diff-check
@@ -224,7 +257,7 @@ def diff_check(device1, timestamp1, device2, timestamp2, settings):
             return
         
         config1 = doc1['config'].splitlines(keepends=True)
-        config2 = doc2['config'].splitlines(keepends=True)
+        config2 = doc2['config'].splitlines(keepends(keepends=True))
         
         diff = list(unified_diff(config1, config2, fromfile=f"{device1}-{timestamp1}", tofile=f"{device2}-{timestamp2}"))
         if diff:
@@ -276,9 +309,30 @@ def backup_device(device_name, username, password, settings):
 
     print(f"Summary: {success_count} configurations successfully retrieved and written.")
     if failures:
-        print(f"{failure_count} configurations failed:")
+        print(f"{failure_count} configurations weren't fetched due to connection failures:")
         for device, reason in failures:
             print(f"Device: {device}, Reason: {reason}")
+
+# Helper function to purge configurations from MongoDB
+def purge_configs(date, username, password, settings):
+    client = MongoClient(settings['mongodb_connection']['uri'])
+    db = client[settings['mongodb_connection']['database_name']]
+    collection = db['deviceConfig']
+    start_date = datetime.strptime(date, "%Y-%m-%d")
+    result = collection.delete_many({"timestamp": {"$gte": start_date}})
+    client.close()
+    print(f"Purged {result.deleted_count} configurations from MongoDB.")
+    log_purge_influxdb(username, settings['influxdb'])
+    purge_audit_logs_influxdb(start_date, settings['influxdb'])
+
+# Helper function to purge audit logs from InfluxDB
+def purge_audit_logs_influxdb(start_date, influx_settings):
+    client = InfluxDBClient(url=influx_settings['url'], token=influx_settings['token'], org=influx_settings['org'])
+    delete_api = client.delete_api()
+    end_date = datetime.now(timezone.utc)
+    delete_api.delete(start=start_date, stop=end_date, bucket=influx_settings['bucket'], org=influx_settings['org'], predicate='_measurement="deviceConfigBackup"')
+    client.close()
+    print("Corresponding audit entries from InfluxDB purged.")
 
 def main():
     parser = argparse.ArgumentParser(description='NetProvision CLI for device configurations')
@@ -289,8 +343,9 @@ def main():
     parser.add_argument('--last', type=int, help='Display the last N backup operations')
     parser.add_argument('--date', type=str, help='Display backup operations for a specific date (YYYY-MM-DD)')
     parser.add_argument('--diff-check', nargs=4, type=str, help='Display differences between two versions. Usage: --diff-check <device1> <timestamp1> <device2> <timestamp2>')
-    parser.add_argument('--username', type=str, help='Username for backup operations')
-    parser.add_argument('--password', type=str, help='Password for backup operations')
+    parser.add_argument('--username', type=str, help='Username for backup operations and purgedb')
+    parser.add_argument('--password', type=str, help='Password for backup operations and purgedb')
+    parser.add_argument('--purgedb', type=str, help='Purge configurations from MongoDB from a specific date (YYYY-MM-DD) or view purge history. Usage: --purgedb <YYYY-MM-DD> or --purgedb history')
 
     args = parser.parse_args()
 
@@ -315,6 +370,23 @@ def main():
             display_audit_history_influxdb(settings['influxdb'], args.last, args.date, args.device)
     elif args.diff_check:
         diff_check(*args.diff_check, settings)
+    elif args.purgedb:
+        if settings['data_source'] == 'yaml':
+            print("Purge operation is not supported for YAML data source.")
+            return
+        if args.purgedb.lower() == 'history':
+            display_purge_history_influxdb(settings['influxdb'])
+        else:
+            username = args.username
+            if not username:
+                print("Username is required for purge operations.")
+                return
+            password = args.password if args.password else getpass("Password: ")
+            confirmation = input(f"WARNING: This operation will delete all configurations from {args.purgedb} onwards from the MongoDB database and corresponding entries from InfluxDB. Type 'YES' to confirm: ")
+            if confirmation == 'YES':
+                purge_configs(args.purgedb, username, password, settings)
+            else:
+                print("Purge operation cancelled.")
     else:
         parser.print_help()
 
