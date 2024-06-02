@@ -257,7 +257,7 @@ def diff_check(device1, timestamp1, device2, timestamp2, settings):
             return
         
         config1 = doc1['config'].splitlines(keepends=True)
-        config2 = doc2['config'].splitlines(keepends(keepends=True))
+        config2 = doc2['config'].splitlines(keepends=True)
         
         diff = list(unified_diff(config1, config2, fromfile=f"{device1}-{timestamp1}", tofile=f"{device2}-{timestamp2}"))
         if diff:
@@ -337,7 +337,7 @@ def purge_audit_logs_influxdb(start_date, influx_settings):
 def main():
     parser = argparse.ArgumentParser(description='NetProvision CLI for device configurations')
     parser.add_argument('--backup', type=str, help='Backup the running configuration of a specific device hostname or "all" for all devices')
-    parser.add_argument('--display', type=str, help='Display the stored configuration for a specific device hostname')
+    parser.add_argument('--display', type=str, help='Display the latest or most recent stored configuration for a specific device hostname')
     parser.add_argument('--audit-history', action='store_true', help='Display audit logs for backup operations')
     parser.add_argument('--device', type=str, help='Specify a device for audit-history or diff-check')
     parser.add_argument('--last', type=int, help='Display the last N backup operations')
