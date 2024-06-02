@@ -13,6 +13,8 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from prettytable import PrettyTable
 from difflib import unified_diff
 import logging
+import traceback
+
 logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 # Helper function to read YAML settings
@@ -52,7 +54,8 @@ def fetch_device_config(device_details, username, password):
         stdin, stdout, stderr = ssh.exec_command(command)
         config = stdout.read().decode()
     except Exception as e:
-        print(f"Error: Failed to fetch configuration from {ip}. Error: {str(e)}")
+        print(f"Error: Failed to fetch configuration from {ip}. Please check the command and the device response.")
+        logging.error(f"Error fetching configuration from {ip}: {traceback.format_exc()}")
         return None
     finally:
         ssh.close()
@@ -63,7 +66,7 @@ def store_config_yaml(device_name, config):
     if config:
         directory = 'device_configs'
         os.makedirs(directory, exist_ok=True)
-        timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
         file_path = os.path.join(directory, f'{device_name}-config-{timestamp}.txt')
         with open(file_path, 'w') as file:
             file.write(config)
@@ -91,7 +94,7 @@ def store_config_mongodb(device_name, config, mongo_uri, db_name):
 def log_audit_yaml(device_name, operation, user, duration, config_file_path):
     directory = 'audit_logs'
     os.makedirs(directory, exist_ok=True)
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
     log_path = os.path.join(directory, f'BACKUP_{device_name}_{timestamp}.txt')
     with open(log_path, 'w') as file:
         file.write(f"Device: {device_name}\nOperation: {operation}\nUser: {user}\nDuration: {duration}s\nConfig File: {config_file_path}\n")
@@ -161,6 +164,7 @@ def display_audit_history_yaml(last=None, date=None, device=None):
         print("No audit logs found.")
         return
     table = PrettyTable(["Device", "Operation", "Date and Time", "Operator", "Config File"])
+    table._max_width = {"Device": 20, "Operation": 20, "Date and Time": 20, "Operator": 20, "Config File": None}
     for file in files:
         with open(os.path.join(directory, file), 'r') as f:
             lines = f.readlines()
