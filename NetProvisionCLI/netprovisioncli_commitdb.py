@@ -99,7 +99,7 @@ def diff_check(deployment_id1, deployment_id2, influxdb_url, influxdb_token, inf
         config1 = entry1['deployed_config_path'].splitlines()
         config2 = entry2['deployed_config_path'].splitlines()
         
-        diff = difflib.unified_diff(config1, config2, fromfile=deployment_id1, tofile=deployment_id2)
+        diff = difflib.unified_diff(config2, config1, fromfile=deployment_id1, tofile=deployment_id2)
         print('\n'.join(diff))
 
 def main():
