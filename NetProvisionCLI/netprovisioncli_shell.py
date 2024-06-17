@@ -53,6 +53,10 @@ class CustomerShell(cmd2.Cmd):
         except subprocess.CalledProcessError as e:
             self.perror(f"Error executing {script_name}: {e.stderr}")
 
+    def do_addcustomer(self, arg):
+        """Add a new customer or modify an existing one to the service database. Usage: addcustomer --recipe RECIPEFILE --username USERNAME"""
+        self.run_script('netprovisioncli_admin.py', arg)
+        
     def do_generate(self, arg):
         """Generate configuration. Usage: generate --customer-name CUSTOMER_NAME"""
         self.run_script('netprovisioncli_generate.py', arg)
@@ -79,7 +83,7 @@ class CustomerShell(cmd2.Cmd):
 
     def do_help(self, arg):
         """Customized help command"""
-        customer_commands = ['generate', 'deploy', 'commitdb', 'export', 'query']
+        customer_commands = ['addcustomer', 'generate', 'deploy', 'commitdb', 'export', 'query']
         general_commands = [cmd for cmd in self.get_all_commands() if cmd not in customer_commands]
 
         self.poutput("\nCustomer Service Provisioning commands:")
