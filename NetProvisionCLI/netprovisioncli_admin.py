@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from prettytable import PrettyTable
 import bcrypt
 import glob
+import ipaddress
 
 def load_settings():
     """Load settings from the settings.yaml file."""
@@ -76,6 +77,101 @@ def validate_and_transform_customer_data(customer_data):
     }
     return transformed_data
 
+def check_for_conflicts(customers_collection, customer_data):
+    """Check for conflicts in VLAN ID, Pseudowire ID, Circuit ID, IRB IP addresses, and customer LAN routes."""
+    service_details = customer_data['customer_details']['service_details']
+    devices = customer_data['customer_details']['devices']
+
+    # Check VLAN ID
+    vlan_id_conflict = customers_collection.find_one({
+        'customer_details.service_details.vlan_id': service_details['vlan_id'],
+        'customer_details.devices.access.name': devices['access']['name'],
+        'customer_details.devices.access.interface': devices['access']['interface'],
+        'name': {'$ne': customer_data['name']}
+    })
+    if vlan_id_conflict:
+        return f"Conflict: VLAN ID {service_details['vlan_id']} on {devices['access']['name']} {devices['access']['interface']} is already in use by customer {vlan_id_conflict['name']}."
+
+    # Check Pseudowire ID
+    pw_id_conflict = customers_collection.find_one({
+        '$or': [
+            {'customer_details.devices.access.name': devices['access']['name']},
+            {'customer_details.devices.pe.name': devices['pe']['name']}
+        ],
+        'customer_details.service_details.pw_id': service_details['pw_id'],
+        'name': {'$ne': customer_data['name']}
+    })
+    if pw_id_conflict:
+        return f"Conflict: Pseudowire ID {service_details['pw_id']} is already in use by customer {pw_id_conflict['name']} on access device {pw_id_conflict['customer_details']['devices']['access']['name']} or PE device {pw_id_conflict['customer_details']['devices']['pe']['name']}."
+
+    # Check Circuit ID
+    circuit_id_conflict = customers_collection.find_one({
+        'customer_details.service_details.circuit_id': service_details['circuit_id'],
+        'customer_details.devices.access.name': devices['access']['name'],
+        'customer_details.devices.access.interface': devices['access']['interface'],
+        'name': {'$ne': customer_data['name']}
+    })
+    if circuit_id_conflict:
+        return f"Conflict: Circuit ID {service_details['circuit_id']} on {devices['access']['name']} {devices['access']['interface']} is already in use by customer {circuit_id_conflict['name']}."
+
+    # Check IRB IPv4 address
+    irb_ipv4_conflicts = customers_collection.find({
+        'customer_details.service_details.irb_ipaddr': {'$exists': True},
+        'name': {'$ne': customer_data['name']}
+    })
+    for conflict in irb_ipv4_conflicts:
+        existing_network = ipaddress.ip_network(conflict['customer_details']['service_details']['irb_ipaddr'], strict=False)
+        new_network = ipaddress.ip_network(service_details['irb_ipaddr'], strict=False)
+        if new_network.overlaps(existing_network):
+            if new_network == existing_network:
+                return f"Conflict: IRB IPv4 address {service_details['irb_ipaddr']} is already in use by customer {conflict['name']}."
+            else:
+                return f"Conflict: IRB IPv4 prefix {service_details['irb_ipaddr']} overlaps with {conflict['customer_details']['service_details']['irb_ipaddr']} owned by customer {conflict['name']}."
+
+    # Check IRB IPv6 address
+    irb_ipv6_conflicts = customers_collection.find({
+        'customer_details.service_details.irb_ipv6addr': {'$exists': True},
+        'name': {'$ne': customer_data['name']}
+    })
+    for conflict in irb_ipv6_conflicts:
+        existing_network = ipaddress.ip_network(conflict['customer_details']['service_details']['irb_ipv6addr'], strict=False)
+        new_network = ipaddress.ip_network(service_details['irb_ipv6addr'], strict=False)
+        if new_network.overlaps(existing_network):
+            if new_network == existing_network:
+                return f"Conflict: IRB IPv6 address {service_details['irb_ipv6addr']} is already in use by customer {conflict['name']}."
+            else:
+                return f"Conflict: IRB IPv6 prefix {service_details['irb_ipv6addr']} overlaps with {conflict['customer_details']['service_details']['irb_ipv6addr']} owned by customer {conflict['name']}."
+
+    # Check IPv4 LAN route
+    ipv4_lan_conflicts = customers_collection.find({
+        'customer_details.service_details.ipv4_lan': {'$exists': True},
+        'name': {'$ne': customer_data['name']}
+    })
+    for conflict in ipv4_lan_conflicts:
+        existing_network = ipaddress.ip_network(conflict['customer_details']['service_details']['ipv4_lan'], strict=False)
+        new_network = ipaddress.ip_network(service_details['ipv4_lan'], strict=False)
+        if new_network.overlaps(existing_network):
+            if new_network == existing_network:
+                return f"Conflict: IPv4 LAN route {service_details['ipv4_lan']} is already in use by customer {conflict['name']}."
+            else:
+                return f"Conflict: IPv4 LAN prefix {service_details['ipv4_lan']} overlaps with {conflict['customer_details']['service_details']['ipv4_lan']} owned by customer {conflict['name']}."
+
+    # Check IPv6 LAN route
+    ipv6_lan_conflicts = customers_collection.find({
+        'customer_details.service_details.ipv6_lan': {'$exists': True},
+        'name': {'$ne': customer_data['name']}
+    })
+    for conflict in ipv6_lan_conflicts:
+        existing_network = ipaddress.ip_network(conflict['customer_details']['service_details']['ipv6_lan'], strict=False)
+        new_network = ipaddress.ip_network(service_details['ipv6_lan'], strict=False)
+        if new_network.overlaps(existing_network):
+            if new_network == existing_network:
+                return f"Conflict: IPv6 LAN route {service_details['ipv6_lan']} is already in use by customer {conflict['name']}."
+            else:
+                return f"Conflict: IPv6 LAN prefix {service_details['ipv6_lan']} overlaps with {conflict['customer_details']['service_details']['ipv6_lan']} owned by customer {conflict['name']}."
+
+    return None
+
 def add_or_update_customer(connection_string, database_name, recipe_file):
     if recipe_file.endswith('.yaml') or recipe_file.endswith('.yml'):
         with open(recipe_file, 'r') as file:
@@ -91,6 +187,11 @@ def add_or_update_customer(connection_string, database_name, recipe_file):
     client = MongoClient(connection_string)
     db = client[database_name]
     customers_collection = db['customers']
+
+    conflict_message = check_for_conflicts(customers_collection, customer_data)
+    if conflict_message:
+        print(conflict_message)
+        return
 
     result = customers_collection.update_one(
         {'name': customer_data['name']},
