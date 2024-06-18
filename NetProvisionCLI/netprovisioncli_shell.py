@@ -2,6 +2,47 @@ import cmd2
 import subprocess
 import os
 
+def show_man(poutput):
+    """Display the manual pages."""
+    poutput("""
+# Switch data source to MongoDB
+settings --set-source mongodb
+
+# Verify data source settings
+settings --show
+
+# Add a customer to MongoDB from a recipe file (YAML or JSON)
+customer --recipe recipes/customers/CUSTOMEREXAMPLE.yaml --username USERNAME
+
+# Generate the customer's configuration files
+generate --customer-name CUSTOMEREXAMPLE
+
+# Deployment of a customer
+deploy --customer-name CUSTOMEREXAMPLE --username USERNAME --password PASSWORD --access-device DEVICE1 --pe-device DEVICE2
+
+# Query customers from MongoDB
+query --customer CUSTOMEREXAMPLE
+query --customer CUSTOMEREXAMPLE --device DEVICE1 --device DEVICE2
+
+# List all deployments
+commitdb --deployment-list
+
+# Check for one particular deployment
+commitdb --deployment-id DEPLOYMENT_ID
+
+# Diff-check new vs. previous deployment
+commitdb --diff-check PREVIOUS_DEPLOYMENT_ID LATEST_DEPLOYMENT_ID
+
+# Export device and customers' service activation data to an XLS spreadsheet
+export --export
+
+# Back up MongoDB database and InfluxDB bucket
+backup --export-influx --export-mongo
+
+# Restore MongoDB database
+restore --import-mongo --mongo-input BACKUPFILE.json 
+""")
+
 class NetProvisionShell(cmd2.Cmd):
     prompt = 'NetProvisionCLI> '
 
@@ -34,6 +75,10 @@ class NetProvisionShell(cmd2.Cmd):
         """Exit the shell."""
         return True
 
+    def do_man(self, arg):
+        """Show detailed instructions and examples."""
+        show_man(self.poutput)
+
 class CustomerShell(cmd2.Cmd):
     prompt = 'NetProvisionCLI/customer> '
 
@@ -53,8 +98,8 @@ class CustomerShell(cmd2.Cmd):
         except subprocess.CalledProcessError as e:
             self.perror(f"Error executing {script_name}: {e.stderr}")
 
-    def do_addcustomer(self, arg):
-        """Add a new customer or modify an existing one to the service database. Usage: addcustomer --recipe RECIPEFILE --username USERNAME"""
+    def do_customer(self, arg):
+        """Add or modify customers to the service database. Usage: customer --recipe RECIPEFILE --username USERNAME"""
         self.run_script('netprovisioncli_admin.py', arg)
         
     def do_generate(self, arg):
@@ -83,7 +128,7 @@ class CustomerShell(cmd2.Cmd):
 
     def do_help(self, arg):
         """Customized help command"""
-        customer_commands = ['addcustomer', 'generate', 'deploy', 'commitdb', 'export', 'query']
+        customer_commands = ['customer', 'generate', 'deploy', 'commitdb', 'export', 'query']
         general_commands = [cmd for cmd in self.get_all_commands() if cmd not in customer_commands]
 
         self.poutput("\nCustomer Service Provisioning commands:")
@@ -101,6 +146,10 @@ class CustomerShell(cmd2.Cmd):
                 self.poutput(f"{cmd} - {doc.splitlines()[0]}")
             else:
                 self.poutput(f"{cmd} - No description available.")
+
+    def do_man(self, arg):
+        """Show detailed instructions and examples."""
+        show_man(self.poutput)
 
     def get_all_commands(self):
         """Get all command names"""
@@ -125,12 +174,12 @@ class AdminShell(cmd2.Cmd):
         except subprocess.CalledProcessError as e:
             self.perror(f"Error executing {script_name}: {e.stderr}")
 
-    def do_adduser(self, arg):
-        """Add a new user. Usage: adduser --username USERNAME"""
+    def do_user(self, arg):
+        """Add or modify users. Usage: user --username USERNAME"""
         self.run_script('netprovisioncli_adduser.py', arg)
 
-    def do_testuser(self, arg):
-        """Test a new user. Usage: testuser"""
+    def do_usertest(self, arg):
+        """Test a new user. Usage: usertest"""
         username = input("Enter your username: ")
         password = input("Enter your password: ")
 
@@ -161,13 +210,17 @@ class AdminShell(cmd2.Cmd):
         """View or modify the data sources for NetProvisionCLI. Usage: settings -h"""
         self.run_script('netprovisioncli_settings.py', arg)
 
+    def do_device(self, arg):
+        """Add or modify devices by providing a YAML or JSON file containing the device details. Usage: device --device DEVICEFILE --username USERNAME"""
+        self.run_script('netprovisioncli_admin.py', arg)
+
     def do_exit(self, arg):
         """Exit to the main shell."""
         return True
 
     def do_help(self, arg):
         """Customized help command"""
-        admin_commands = ['adduser', 'testuser', 'backup', 'restore', 'settings']
+        admin_commands = ['user', 'usertest', 'device', 'backup', 'restore', 'settings']
         general_commands = [cmd for cmd in self.get_all_commands() if cmd not in admin_commands]
 
         self.poutput("\nAdmin operations:")
@@ -185,6 +238,10 @@ class AdminShell(cmd2.Cmd):
                 self.poutput(f"{cmd} - {doc.splitlines()[0]}")
             else:
                 self.poutput(f"{cmd} - No description available.")
+
+    def do_man(self, arg):
+        """Show detailed instructions and examples."""
+        show_man(self.poutput)
 
     def get_all_commands(self):
         """Get all command names"""
