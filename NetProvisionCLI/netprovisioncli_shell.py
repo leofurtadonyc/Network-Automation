@@ -10,9 +10,9 @@ settings --set-source mongodb
 
 # Verify data source settings
 settings --show
-            
-# Add network devices to MongoDB from a recipe YAML file
-device --device DEVICEFILE --username USERNAME
+
+#Add network devices from a YAML file to MongoDB netprovision bucket
+device --device devices/network_devices.yaml --username USERNAME
 
 # Add a customer to MongoDB from a recipe file (YAML or JSON)
 customer --recipe recipes/customers/CUSTOMEREXAMPLE.yaml --username USERNAME
