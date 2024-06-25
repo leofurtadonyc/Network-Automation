@@ -240,8 +240,10 @@ def deploy_configurations(username: str, password: str, customer_name: str, devi
             print(f"Deployment issued by user {operator} for customer {customer_name} completed successfully in {time.time() - start_time:.2f} seconds.")
             print(f"Detailed audit log saved in InfluxDB under deployment ID {deployment_id}.")
             print(f"To check the audit log entries for this deployment, use: python netprovisioncli_commitdb.py --deployment-id {deployment_id}")
+            print(f"To check the audit log from within NetProvisionCLI Shell: NetProvisionCLI/customer> commitdb --deployment-id {deployment_id}")
             if previous_deployment_id:
                 print(f"To compare the new deployment with the previous configurations, use: python netprovisioncli_commitdb.py --diff-check {deployment_id} {previous_deployment_id}")
+                print(f"To diff-check this deployment in NetProvisionCLI Shell: NetProvisionCLI/customer> commitdb --diff-check {deployment_id} {previous_deployment_id}")
             else:
                 print("No previous deployment ID found to compare.")  # Debug statement
 
