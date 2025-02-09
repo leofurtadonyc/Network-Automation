@@ -54,6 +54,7 @@ packaging==24.2
 pandas==2.2.2
 paramiko==3.4.0
 prettytable==3.10.0
+prompt_toolkit==3.0.50
 propcache==0.2.1
 pycparser==2.22
 pydantic==2.10.6
