@@ -109,3 +109,75 @@
 
 # 2025-02-11 22:40:49.997315
 +What is the BGP AS of device P1?
+
+# 2025-02-11 22:42:27.886259
++What are P1's BGP neighbors?
+
+# 2025-02-11 22:44:13.190217
++traceroute from p1 to p2
+
+# 2025-02-11 22:44:24.213089
++traceroute from p1 to 100.65.255.14
+
+# 2025-02-11 22:52:23.228724
++What are P1's BGP neighbors?
+
+# 2025-02-11 22:52:38.596070
++What are P1 BGP neighbors?
+
+# 2025-02-11 22:52:51.063467
++can p1 ping 100.65.255.14 with source IP 100.65.0.21?
+
+# 2025-02-11 22:53:47.469805
++can device p1 reach 100.65.255.14?
+
+# 2025-02-11 22:58:41.185294
++Device P2 looks weird... can you take a look at it?
+
+# 2025-02-11 23:00:59.963295
++Device P2 looks weird... can you take check it?
+
+# 2025-02-11 23:04:18.643541
++Device P2 looks weird... can you check it?
+
+# 2025-02-11 23:04:36.509570
++what is the label bindings of P2?
+
+# 2025-02-11 23:04:48.931393
++what is the label bindings for 100.65.255.11 on P2?
+
+# 2025-02-11 23:06:08.891739
++what is the label bindings for 100.65.255.11 32 on P2?
+
+# 2025-02-11 23:06:17.771327
++what is the label bindings for 100.65.255.11 on P2?
+
+# 2025-02-11 23:06:29.177934
++Device P2 looks weird... can you check it?
+
+# 2025-02-11 23:07:27.737204
++what is the management IP address of P1?
+
+# 2025-02-11 23:07:46.330440
++what is the loopback IP address of P1?
+
+# 2025-02-11 23:08:18.835968
++what interfaces are down on p2?
+
+# 2025-02-11 23:17:29.750792
++what is the loopback IP address of P1?
+
+# 2025-02-11 23:17:40.774121
++Device P2 looks weird... can you check it?
+
+# 2025-02-11 23:18:02.757687
++can device p1 reach 100.65.255.14?
+
+# 2025-02-11 23:18:58.495696
++can device p1 reach 100.65.255.145?
+
+# 2025-02-11 23:19:20.540500
++can device p1 reach 100.65.255.145
+
+# 2025-02-11 23:19:27.629831
++can device p1 reach 1.1.1.1

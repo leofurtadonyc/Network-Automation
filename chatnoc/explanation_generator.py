@@ -3,11 +3,11 @@
 def generate_explanation(query, command, output, device_name=""):
     """
     Generate a structured explanation with these sections:
-      - Device Output: The raw output returned by the device.
-      - Command issued: The command ChatNOC ran on the target device.
-      - Explanation: A detailed description of what the command does and why it was used.
-      - Course of action: Recommended next steps and further verifications.
-      - Summary: Recap including the original query and the command executed on device(s).
+      - Device Output: The raw output from the device.
+      - Command issued: The command that was executed.
+      - Explanation: Detailed description of what the command does and why it was used.
+      - Course of action: Recommended next steps or further verifications.
+      - Summary: Recap of the query and command executed (including device(s)).
     """
     lower_query = query.lower()
     cmd_section = f"{command}"
@@ -16,74 +16,71 @@ def generate_explanation(query, command, output, device_name=""):
 
     if "interfaces are down" in lower_query:
         explanation_section = (
-            "This command retrieves the interface status and filters for interfaces that are down. "
+            "This command retrieves interface status and filters for interfaces that are down. "
             "It quickly identifies interfaces that are administratively shut down."
         )
         course_section = (
             "Actions:\n"
             "  1. Verify if the shutdown was intentional (check change management records).\n"
-            "  2. Check for alarms or logs for these interfaces.\n"
+            "  2. Check for alarms or logs related to these interfaces.\n"
             "  3. If unplanned, consult procedures before re-enabling.\n"
-            "  4. Test connectivity or inspect hardware if needed."
+            "  4. Test connectivity or inspect hardware if necessary."
         )
     elif "management ip address" in lower_query:
         explanation_section = (
-            "This command displays the management IP address used for out-of-band management."
+            "This command displays the management IP address used for out-of-band management and troubleshooting."
         )
         course_section = (
             "Actions:\n"
-            "  - Ensure the IP is correctly configured, reachable, and documented."
+            "  - Ensure the management IP is correctly configured, reachable, and documented."
         )
     elif "ospf routes" in lower_query:
         explanation_section = (
-            "This command lists OSPF routes known to the device, providing insight into the OSPF routing domain."
+            "This command lists the OSPF routes known to the device, providing insight into the OSPF routing domain."
         )
         course_section = (
             "Actions:\n"
-            "  - If routes are missing or unexpected, review OSPF configuration, neighbor adjacencies, and topology changes."
+            "  - If routes are missing or unexpected, review OSPF configurations and neighbor adjacencies."
         )
     elif "show ip route" in command:
         if "100.65.255." in command or "100.65.255." in output:
             if "Routing entry" in output:
                 explanation_section = (
-                    "This command checks for a valid route to a destination IP within the 100.65.255.0/24 range. "
-                    "Proper IGP routes are essential for label switching and BGP NEXT_HOP recursion."
+                    "This command checks for a valid route to a destination IP within the 100.65.255.0/24 range.\n"
+                    "Proper IGP routes to Loopback interfaces are crucial for label switching and BGP next-hop recursion."
                 )
                 course_section = (
                     "Actions:\n"
-                    "  - The routing entry exists, indicating the destination is reachable. "
-                    "    No further action is needed unless connectivity issues are observed."
+                    "  - The routing entry exists; the destination is reachable. No further action is needed unless issues occur."
                 )
             else:
                 explanation_section = (
-                    "This command attempts to find a valid route to a destination IP within the 100.65.255.0/24 range. "
-                    "Proper IGP routes are crucial for network connectivity."
+                    "This command attempts to find a valid route to a destination IP within the 100.65.255.0/24 range."
                 )
                 course_section = (
                     "Actions:\n"
-                    "  1. Verify connectivity and point-to-point links with neighbors.\n"
-                    "  2. Review OSPF interface configurations.\n"
-                    "  3. Confirm that OSPF neighbor adjacencies are established."
+                    "  1. Verify device connectivity and point-to-point links with neighbors.\n"
+                    "  2. Review OSPF interface configurations and neighbor adjacencies."
                 )
         else:
             explanation_section = (
-                "This command checks for a valid route to the specified destination IP address."
+                "This command checks for a valid route to the specified destination IP."
             )
             course_section = (
                 "Actions:\n"
-                "  - If no route is found, review the routing configuration and route advertisements from upstream devices."
+                "  - If no route is found, review the routing configuration and upstream route advertisements."
             )
     elif "uptime" in lower_query:
         explanation_section = (
-            "This command retrieves the device's uptime, showing how long it has been operational since its last reboot."
+            "This command retrieves the device's uptime, indicating how long it has been operational since its last reboot."
         )
         course_section = (
             "Actions:\n"
-            "  - A high uptime suggests stability. If unexpectedly low, investigate recent reboots or issues."
+            "  - High uptime indicates stability; if low, investigate recent reboots or issues."
         )
     elif "ospf neighbor" in lower_query:
         explanation_section = (
-            "This command displays OSPF neighbor adjacencies to show which neighbors have completed the exchange of routing information."
+            "This command displays OSPF neighbor adjacencies, showing which neighbors have completed routing information exchange."
         )
         if "how many" in lower_query or "number" in lower_query:
             lines = [line for line in output.splitlines() if line.strip()]
@@ -91,30 +88,49 @@ def generate_explanation(query, command, output, device_name=""):
             explanation_section += f" The output indicates {count} neighbor(s) in the FULL state."
             course_section = (
                 "Actions:\n"
-                "  - If the number is lower than expected, verify connectivity, OSPF configurations, and check for errors."
+                "  - If the number is lower than expected, verify connectivity and OSPF configurations."
             )
         else:
             course_section = (
                 "Actions:\n"
-                "  - If fewer FULL neighbors are observed than expected, verify connectivity and device configuration."
+                "  - If fewer FULL neighbors are observed than expected, review connectivity and device configurations."
             )
     elif "ping" in lower_query:
         explanation_section = (
-            "This command sends ICMP echo requests (ping) from the specified source to the destination IP to verify data plane connectivity."
+            "This command sends ICMP echo requests (pings) from the specified source to the destination IP to verify data plane connectivity."
         )
         course_section = (
             "Actions:\n"
-            "  - Review the ping results. High packet loss or no replies indicate connectivity issues. "
-            "    Ensure the source IP is correct and reachable."
+            "  - Examine the ping results; high packet loss or no replies indicate connectivity issues. "
+            "    Verify the correctness and reachability of the source IP."
         )
     elif "traceroute" in lower_query:
         explanation_section = (
-            "This command performs a traceroute from the specified source to the destination IP, mapping the packet path through the network."
+            "This command performs a traceroute from the specified source to the destination IP, mapping the network path."
         )
         course_section = (
             "Actions:\n"
             "  - Review the traceroute output for timeouts or unreachable hops, which may indicate routing issues. "
-            "    Verify the source configuration and routing path if problems are detected."
+            "    Verify the source configuration and routing path if issues are observed."
+        )
+    elif "bgp neighbor" in lower_query or "bgp neighbors" in lower_query:
+        explanation_section = (
+            "This command displays the BGP neighbor summary for the device, listing the BGP peers and their connection status."
+        )
+        course_section = (
+            "Actions:\n"
+            "  - Review the output for any peers not in an 'established' state. "
+            "    For those not established, check the BGP configuration and underlying connectivity."
+        )
+    elif "ldp label binding" in lower_query or "ldp binding" in lower_query:
+        explanation_section = (
+            "This command retrieves the LDP label binding for the specified destination prefix. "
+            "For Cisco IOS XE devices, a specialized command that includes the mask value is used."
+        )
+        course_section = (
+            "Actions:\n"
+            "  - Verify that the label binding exists and that the correct label is assigned. "
+            "    If not, review the LDP session status and device configuration."
         )
     else:
         explanation_section = (
@@ -124,7 +140,7 @@ def generate_explanation(query, command, output, device_name=""):
             "Actions:\n"
             "  - Review the output and verify the device's configuration for any inconsistencies."
         )
-    
+
     structured_output = (
         "Device Output:\n"
         f"{output}\n\n"
@@ -151,8 +167,7 @@ def generate_explanation_multi(query, device_results):
                              "device_name", "command", and "output".
                              
     Returns:
-      A single string that concatenates each device's structured explanation,
-      separated by a divider.
+      A single string that concatenates each device's structured explanation, separated by a divider.
     """
     explanations = []
     for result in device_results:

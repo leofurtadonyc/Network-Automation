@@ -28,4 +28,35 @@ p1:
   bgp_peers:
     - "100.65.255.3"
     - "100.65.255.4"
+# healthcheck_baseline.yaml
+p2:
+  backbone_interfaces:
+    - interface: "Ethernet 0/0"
+      admin_state: "up"
+      operational_state: "up"
+      peer: "PE2-IOSXR"
+      ospf_adjacency: "full"
+      ldp_session: "established"
+    - interface: "Ethernet 0/1"
+      admin_state: "up"
+      operational_state: "up"
+      peer: "P4"
+      ospf_adjacency: "full"
+      ldp_session: "established"      
+    - interface: "Ethernet 0/2"
+      admin_state: "up"
+      operational_state: "up"
+      peer: "PE1-Junos"
+      ospf_adjacency: "full"
+      ldp_session: "established"
+    - interface: "Ethernet 0/3"
+      admin_state: "up"
+      operational_state: "up"
+      peer: "P1"
+      ospf_adjacency: "full"
+      ldp_session: "established"
+  bgp_peers:
+    - "100.65.255.3"
+    - "100.65.255.4"
+
 

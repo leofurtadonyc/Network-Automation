@@ -2,8 +2,14 @@
 
 COMMAND_MAP = {
     "show_interfaces_down": {
-        "cisco": "show ip interface brief | include down",
-        "cisco_xe": "show ip interface brief | include down",
+        "cisco": [
+            "show ip interface brief | include down",
+            "show interfaces description | include down"
+        ],
+        "cisco_xe": [
+            "show ip interface brief | include down",
+            "show interfaces description | include down"
+        ],
         "juniper_junos": "show interfaces terse | match down",
         "cisco_xr": "show interfaces brief | include down",
         "huawei_vrp": "display interface | include down",
@@ -64,6 +70,22 @@ COMMAND_MAP = {
         "cisco_xr": "traceroute {destination_ip} source {source_ip}",
         "huawei_vrp": "traceroute {destination_ip} source {source_ip}",
         "nokia_sr": "traceroute source {source_ip} {destination_ip}"
+    },
+    "bgp_neighbors": {
+        "cisco": "show ip bgp summary",
+        "cisco_xe": "show ip bgp summary",
+        "juniper_junos": "show bgp neighbor",
+        "cisco_xr": "show ip bgp summary",
+        "huawei_vrp": "display bgp peer",
+        "nokia_sr": "show router bgp summary"
+    },
+    "ldp_label_binding": {
+        "cisco": "show mpls ldp binding | include {destination_ip}",
+        "cisco_xe": "show mpls ldp bindings {destination_ip} {mask}",
+        "juniper_junos": "show mpls ldp binding | match {destination_ip}",
+        "cisco_xr": "show mpls ldp binding | include {destination_ip}",
+        "huawei_vrp": "display mpls ldp binding | include {destination_ip}",
+        "nokia_sr": "show router mpls ldp binding | include {destination_ip}"
     }
 }
 
@@ -72,14 +94,26 @@ def get_command(action, device_type, **kwargs):
     if mapping:
         cmd_template = mapping.get(device_type)
         if cmd_template:
-            try:
-                return cmd_template.format(**kwargs)
-            except KeyError:
-                # A required parameter is missing.
-                return None
+            # If cmd_template is a list, format each command.
+            if isinstance(cmd_template, list):
+                cmds = []
+                for template in cmd_template:
+                    try:
+                        cmds.append(template.format(**kwargs))
+                    except KeyError:
+                        # If a required parameter is missing, return None for this command.
+                        return None
+                return cmds
+            else:
+                try:
+                    return cmd_template.format(**kwargs)
+                except KeyError:
+                    return None
     return None
 
 if __name__ == "__main__":
     # Example tests:
-    print(get_command("ping", "cisco", destination_ip="100.65.255.14", source_ip="100.65.255.1"))
-    print(get_command("traceroute", "nokia_sr", destination_ip="100.65.255.14", source_ip="100.65.255.1"))
+    print("Ping (Cisco):", get_command("ping", "cisco", destination_ip="100.65.255.14", source_ip="100.65.255.1"))
+    print("Traceroute (Nokia):", get_command("traceroute", "nokia_sr", destination_ip="100.65.255.14", source_ip="100.65.255.1"))
+    print("Show Interfaces Down (Cisco):", get_command("show_interfaces_down", "cisco"))
+    print("LDP Label Binding (Cisco XE):", get_command("ldp_label_binding", "cisco_xe", destination_ip="100.65.255.14", mask="32"))
