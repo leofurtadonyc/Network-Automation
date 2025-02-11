@@ -67,3 +67,36 @@
 
 # 2025-02-09 18:31:23.089675
 +can device p1 reach 1.1.1.0?
+
+# 2025-02-11 21:46:43.820635
++is p1 router healthy?
+
+# 2025-02-11 21:47:31.281860
++run a healthcheck on p1, will ya?
+
+# 2025-02-11 21:47:48.589393
++I am afraid there might be a problem with P1...
+
+# 2025-02-11 21:48:04.399796
++I am not sure how many OSPF routes P1 has
+
+# 2025-02-11 21:48:22.177074
++can you check P1's OSPF LSDB?
+
+# 2025-02-11 21:56:52.452458
++I am not sure how many OSPF routes P1 has
+
+# 2025-02-11 21:57:21.952411
++can device p1 reach 100.65.255.14?
+
+# 2025-02-11 21:58:13.466430
++I am not sure how many OSPF routes P1 has
+
+# 2025-02-11 22:18:03.153667
++I am not sure how many OSPF routes P1 and P2 have
+
+# 2025-02-11 22:29:02.797148
++can p1 ping p2's loopback?
+
+# 2025-02-11 22:29:24.868194
++can p1 ping 100.65.255.14?
