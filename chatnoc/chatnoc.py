@@ -25,17 +25,18 @@ def parse_operator_query(query, llm):
       {
         "action": <action>,
         "target_device": <device name or comma-separated list or "all">,
-        "destination_ip": <optional>
+        "destination_ip": <optional>,
+        "source_ip": <optional>
       }
     Possible actions include:
       show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route,
-      show_uptime, show_ospf_neighbors_full, healthcheck.
+      show_uptime, show_ospf_neighbors_full, ping, traceroute, healthcheck.
     """
     prompt = (
         "You are an assistant that translates network operator queries into a JSON object in the following format:\n"
-        '{ "action": <action>, "target_device": <device name or comma-separated list or "all">, "destination_ip": <optional> }\n'
+        '{ "action": <action>, "target_device": <device name or comma-separated list or "all">, "destination_ip": <optional>, "source_ip": <optional> }\n'
         "Possible actions include: show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route, "
-        "show_uptime, show_ospf_neighbors_full, healthcheck.\n\n"
+        "show_uptime, show_ospf_neighbors_full, ping, traceroute, healthcheck.\n\n"
         f"Query: {query}\n\n"
         "JSON:"
     )
@@ -80,19 +81,17 @@ def main_cli():
             
             # Healthcheck branch.
             if action == "healthcheck":
-                # Split target if multiple devices (by comma or "and").
+                # For healthcheck, target_device can be multiple or "all"
                 if any(sep in target_device_str.lower() for sep in [",", " and "]):
                     device_names = [name.strip() for name in re.split(r',|\band\b', target_device_str, flags=re.IGNORECASE)]
                 else:
                     device_names = [target_device_str.strip()]
-                
                 for name in device_names:
                     device = inventory.get_device_by_name(name)
                     if not device:
                         print(f"Device '{name}' not found in inventory.")
                         continue
                     print(f"\nPerforming health check on device {device.name} ({device.mgmt_address})...")
-                    # Load baseline data from healthcheck_baseline.yaml.
                     try:
                         with open("healthcheck_baseline.yaml", "r") as f:
                             baseline_data = yaml.safe_load(f)
@@ -106,7 +105,7 @@ def main_cli():
                     results = run_health_check_for_device(device, baseline_for_device)
                     print_health_check_results(device.name, results)
                     print("\n" + "-" * 80 + "\n")
-                continue  # Skip further processing for healthcheck queries.
+                continue
             
             # For non-healthcheck queries:
             # Check if multiple devices are specified.
@@ -123,13 +122,14 @@ def main_cli():
                     print("No valid devices found in the target list.")
                     continue
                 extra_params = {}
-                if action == "check_route":
+                if action in ["check_route", "ping", "traceroute"]:
                     extra_params["destination_ip"] = intent.get("destination_ip", "")
-                    if not extra_params["destination_ip"]:
-                        print("Destination IP address is required for the check_route action.")
-                        continue
+                    extra_params["source_ip"] = intent.get("source_ip", "")
                 device_results = []
                 for device in devices:
+                    # For ping/traceroute, if no source_ip is provided, use device.loopback_address.
+                    if action in ["ping", "traceroute"] and not extra_params.get("source_ip"):
+                        extra_params["source_ip"] = device.loopback_address
                     command = get_command(action, device.device_type, **extra_params)
                     if not command:
                         print(f"No command mapping found for action '{action}' on device type '{device.device_type}'.")
@@ -153,11 +153,14 @@ def main_cli():
                     print(f"Device '{target_device_str}' not found in inventory.")
                     continue
                 extra_params = {}
-                if action == "check_route":
+                if action in ["check_route", "ping", "traceroute"]:
                     extra_params["destination_ip"] = intent.get("destination_ip", "")
-                    if not extra_params["destination_ip"]:
-                        print("Destination IP address is required for the check_route action.")
+                    extra_params["source_ip"] = intent.get("source_ip", "")
+                    if action in ["check_route", "ping", "traceroute"] and not extra_params["destination_ip"]:
+                        print("Destination IP address is required for this action.")
                         continue
+                    if action in ["ping", "traceroute"] and not extra_params["source_ip"]:
+                        extra_params["source_ip"] = device.loopback_address
                 command = get_command(action, device.device_type, **extra_params)
                 if not command:
                     print(f"No command mapping found for action '{action}' on device type '{device.device_type}'.")
