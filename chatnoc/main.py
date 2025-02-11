@@ -1,80 +1,102 @@
 # main.py
 import json
+import re
 from devices_inventory import DeviceInventory
 from command_mapper import get_command
 from netmiko_executor import execute_command
 from llm_interface import get_llm
 from explanation_generator import generate_explanation
 
+import logging
+import httpx
+
+# # Enable debug logging for HTTPX and its dependencies
+# logging.basicConfig(level=logging.DEBUG)
+# httpx_log = logging.getLogger("httpx")
+# httpx_log.setLevel(logging.DEBUG)
+
+import json
+
 def parse_operator_query(query, llm):
     """
-    Use the LLM to parse the operator query into a structured intent.
-    
+    Use the LLM to parse the network operator query into a JSON intent.
+
     Expected JSON format:
-        { "action": <action>, "target_role": <device role or hostname> }
-        
-    For example, the query:
-        "Show me the interface status on the access router."
-    might return:
-        { "action": "show_interface_status", "target_role": "access" }
+      {
+        "action": <action>,
+        "target_device": <device hostname>,
+        "destination_ip": <optional, only for check_route>
+      }
+
+    The prompt instructs the LLM to output ONLY valid JSON with no additional text.
     """
     prompt = (
-        "You are an assistant that translates network operator queries into a JSON with the following format:\n"
-        '{ "action": <action>, "target_role": <device role or hostname> }\n'
-        "Possible actions include: show_interface_status, show_routing_table.\n"
-        "For the query below, provide the corresponding JSON:\n\n"
+        "You are an assistant that translates network operator queries into a JSON object in the following format:\n"
+        "{ \"action\": <action>, \"target_device\": <device hostname>, \"destination_ip\": <optional> }\n"
+        "Please output ONLY valid JSON with no additional explanation or commentary.\n"
+        "Possible actions include: show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route, show_uptime, show_ospf_neighbors_full.\n\n"
         f"Query: {query}\n\n"
         "JSON:"
     )
-    response = llm.invoke(prompt)  # Using .invoke() instead of direct call.
-    try:
-        structured_intent = json.loads(response)
-    except json.JSONDecodeError:
-        # Fallback default if parsing fails
-        structured_intent = {"action": "show_interface_status", "target_role": "access"}
-    return structured_intent
+    
+    response = llm.invoke(prompt)
+    # Debug: print the raw response (you can uncomment the following line for troubleshooting)
+    # print("LLM raw response:", response)
+    
+    # Use a regular expression to extract a substring that looks like a JSON object.
+    match = re.search(r'(\{.*\})', response, re.DOTALL)
+    if match:
+        json_str = match.group(1)
+        try:
+            structured_intent = json.loads(json_str)
+            return structured_intent
+        except json.JSONDecodeError as e:
+            print("Error decoding JSON:", e)
+    
+    print("Error parsing LLM response, defaulting to empty intent.")
+    return {}
 
 def main():
-    # Initialize the LLM interface
     llm = get_llm()
     
-    # Get operator query input (for now, from standard input)
     operator_query = input("Enter your query: ")
-    
-    # Use the LLM to parse the query into a structured intent
     intent = parse_operator_query(operator_query, llm)
     action = intent.get("action")
-    target_identifier = intent.get("target_role")  # Could be a role or a hostname
-
-    # Load device inventory and filter devices by role first
-    inventory = DeviceInventory()
-    target_devices = inventory.get_devices_by_role(target_identifier)
+    target_device_name = intent.get("target_device")
     
-    # If no devices match the role, try matching by device name
-    if not target_devices:
-        device = inventory.get_device_by_name(target_identifier)
-        if device:
-            target_devices = [device]
-        else:
-            print(f"No devices found for role or hostname '{target_identifier}'.")
+    if not action or not target_device_name:
+        print("Could not parse the query correctly. Please try again.")
+        return
+    
+    # Retrieve the target device from the inventory
+    inventory = DeviceInventory()
+    device = inventory.get_device_by_name(target_device_name)
+    if not device:
+        print(f"No device found with the name '{target_device_name}'.")
+        return
+    
+    # For check_route, we need a destination IP.
+    extra_params = {}
+    if action == "check_route":
+        extra_params["destination_ip"] = intent.get("destination_ip", "")
+        if not extra_params["destination_ip"]:
+            print("Destination IP address is required for the check_route action.")
             return
     
-    # Process each device: map the intent to a command and execute it
-    for device in target_devices:
-        command = get_command(action, device.device_type)
-        if not command:
-            print(f"No command mapping found for action '{action}' on device type '{device.device_type}'.")
-            continue
-        
-        print(f"\nExecuting on {device.name} ({device.mgmt_address}): {command}")
-        output = execute_command(device, command)
-        print("Command Output:")
-        print(output)
-        
-        # Generate an explanation to educate the operator
-        explanation = generate_explanation(operator_query, command, output)
-        print("\nExplanation:")
-        print(explanation)
+    # Get the command template for this action/device type.
+    command = get_command(action, device.device_type, **extra_params)
+    if not command:
+        print(f"No command mapping found for action '{action}' on device type '{device.device_type}'.")
+        return
+    
+    print(f"\nExecuting on {device.name} ({device.mgmt_address}): {command}")
+    output = execute_command(device, command)
+    print("Command Output:")
+    print(output)
+    
+    explanation = generate_explanation(operator_query, command, output)
+    print("\nExplanation:")
+    print(explanation)
 
 if __name__ == "__main__":
     main()

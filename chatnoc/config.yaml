@@ -1,4 +1,13 @@
 # config.yaml
 ollama:
-  host: "localhost"
+  host: "192.168.0.238"
   port: 11434
+
+authentication:
+  type: "plain-text"   # Options: "plain-text" or "secure"
+  username: "lfurtado"
+  password: "Juniper"
+
+# authentication:
+#   type: "secure"       # Use secure authentication
+#   credentials_file: "credentials.json"  # File that holds hashed credentials

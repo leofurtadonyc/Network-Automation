@@ -1,5 +1,6 @@
 # netmiko_executor.py
 from netmiko import ConnectHandler
+from auth_manager import get_credentials
 
 # Mapping from our device_type names to Netmiko device types
 DEVICE_TYPE_MAPPING = {
@@ -11,14 +12,17 @@ DEVICE_TYPE_MAPPING = {
     "nokia_sr": "nokia_sros"
 }
 
-def execute_command(device, command, username="admin", password="admin"):
-    """
-    Connect to the device using Netmiko and execute the given command.
-    """
+def execute_command(device, command):
     netmiko_device_type = DEVICE_TYPE_MAPPING.get(device.device_type)
     if not netmiko_device_type:
         return f"Unsupported device type: {device.device_type} for device {device.name}"
     
+    # Retrieve credentials based on authentication settings.
+    try:
+        username, password = get_credentials()
+    except Exception as e:
+        return f"Authentication error: {e}"
+
     device_params = {
         "device_type": netmiko_device_type,
         "host": device.mgmt_address,
@@ -35,7 +39,7 @@ def execute_command(device, command, username="admin", password="admin"):
         return f"Failed to execute command on {device.name}: {e}"
 
 if __name__ == "__main__":
-    # For a quick test, you can define a dummy device here
+    # For testing, define a dummy device.
     class DummyDevice:
         def __init__(self, name, device_type, mgmt_address):
             self.name = name
