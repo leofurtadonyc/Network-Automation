@@ -1,8 +1,8 @@
-P1#traceroute 100.65.255.14 source 100.65.255.1
+P1#traceroute 100.65.255.14 source loopback 0
 Type escape sequence to abort.
 Tracing the route to 100.65.255.14
 VRF info: (vrf in name/id, vrf out name/id)
-  1 100.65.0.22 [MPLS: Label 40 Exp 0] 2 msec 1 msec 1 msec
-  2 100.65.0.34 [MPLS: Label 40 Exp 0] 1 msec 1 msec 0 msec
-  3 100.65.0.46 [MPLS: Label 36 Exp 0] 1 msec 8 msec 1 msec
-  4 100.65.255.14 [AS 64516] 2 msec 8 msec 2 msec
+  1 100.65.0.22 [MPLS: Label 40 Exp 0] 2 msec 1 msec 0 msec
+  2 100.65.0.34 [MPLS: Label 40 Exp 0] 1 msec 1 msec 5 msec
+  3 100.65.0.46 [MPLS: Label 36 Exp 0] 0 msec 8 msec 0 msec
+  4 100.65.255.14 [AS 64516] 3 msec 7 msec 1 msec

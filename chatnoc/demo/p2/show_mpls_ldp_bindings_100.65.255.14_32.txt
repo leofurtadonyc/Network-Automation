@@ -1,0 +1,7 @@
+P2#show mpls ldp bindings 100.65.255.14 32
+  lib entry: 100.65.255.14/32, rev 78
+        local binding:  label: 19
+        remote binding: lsr: 100.65.255.4:0, label: 40
+        remote binding: lsr: 100.65.255.1:0, label: 21
+        remote binding: lsr: 100.65.255.11:0, label: 110030
+        remote binding: lsr: 100.65.255.12:0, label: 120021
