@@ -1,0 +1,92 @@
+************************************************************************
+                         Welcome to ChatNOC
+             Network Automation Chatbot & Orchestrator
+ Leonardo Furtado - https://github.com/leofurtadonyc/Network-Automation
+************************************************************************
+
+Overview:
+----------
+ChatNOC is an interactive shell that allows you to query and manage your network devices using natural language.
+It leverages an LLM (Ollama) to interpret your queries and then connects to your devices (via SSH in normal mode)
+to execute commands. ChatNOC also supports a demo mode for safe experimentation without live network connections.
+
+Usage:
+------
+1. At the ChatNOC prompt, simply type your query in plain English. Other languages my work just fine (i.e., Brazilian Portuguese).
+   Examples:
+     - "How many OSPF routes does P2 have?"
+     - "Can device P1 reach 100.65.255.14?"
+     - "How many BGP sessions does P1 have?"
+     - "Show interfaces down on P1"
+     - "Get management IP address of P3"
+     - "Ping 1.1.1.1 from P1's loopback"
+     - "Traceroute 1.1.1.1 from P1's loopback"
+     - "Healthcheck P1" (or "Healthcheck P1, P2", etc.)
+     - "Device P2 looks weird, could you check it for me?"
+
+2. ChatNOC processes your query by using an LLM to convert it into a structured JSON intent and then maps it to the appropriate device commands.
+
+3. The results are displayed with:
+   - The raw output from the device.
+   - The command that was executed.
+   - A detailed explanation of the command’s purpose.
+   - Recommended courses of action based on the output.
+   - A summary of your query and the executed command.
+
+Demo Mode:
+-----------
+- To try ChatNOC in demo mode (dry-run), type:
+      demo
+  When in demo mode, no live network connections are made; instead, ChatNOC loads pre-saved command outputs from the "demo" folder.
+  It is purely dry-run!
+  
+- In demo mode, the prompt changes to:
+      demo-mode>
+  
+- To exit demo mode and return to normal operation, type:
+      exit demo
+
+General Commands:
+-----------------
+- help
+      Displays this help message.
+
+- exit or quit
+      In normal mode, this command will exit ChatNOC.
+      In demo mode, "exit demo" will return you to normal mode.
+
+File & Folder Structure:
+------------------------
+- Baseline Data:
+      Stored in the "baseline" folder (e.g., baseline/healthcheck_baseline.yaml).
+      This file contains expected configurations for devices, used to validate health checks and neighbor relationships.
+      
+- Explanations:
+      Each explanation scenario is stored in a separate file under the "explanations" folder.
+      This modular approach makes it easier to maintain and extend explanation logic.
+
+- Demo Outputs:
+      Pre-saved command outputs for demo mode are stored in the "demo" folder.
+      Each device has its own subfolder (e.g., demo/p1, demo/p2, etc.), and files are named based on the executed command (normalized).
+      
+Troubleshooting:
+----------------
+- If you see errors about connecting to devices:
+     • Verify the device’s hostname/IP address, TCP port, and credentials.
+     • Ensure that there are no firewall issues blocking access.
+     
+- If you encounter errors with Ollama:
+     • Confirm that Ollama is running and listening on the expected IP address and port.
+     
+- In demo mode:
+     • Ensure that the appropriate demo output files exist in the "demo" folder.
+     • If a file is missing or empty, ChatNOC will notify you with a message.
+
+Additional Notes:
+-----------------
+ChatNOC is designed to be flexible and modular. Future enhancements might include additional baseline types and explanation scenarios.
+Your feedback and collaboration are welcome as the project evolves!
+
+**************************************************
+            Enjoy using ChatNOC!
+**************************************************

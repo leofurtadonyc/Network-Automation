@@ -1,0 +1,3 @@
+P1#show ip interface brief | include down
+Ethernet1/1                unassigned      YES NVRAM  administratively down down    
+Ethernet1/2                unassigned      YES NVRAM  administratively down down    

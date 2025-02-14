@@ -1,8 +1,9 @@
 # explanations/general_explanation.py
 
-def explain_general(query, command, output, device_name=""):
+def explain_general(query, command, output, device_name="", baseline=None):
     """
     Generate a general explanation for queries that do not fall into a specialized category.
+    The baseline parameter is accepted for consistency with other explanation functions.
     """
     explanation = (
         "This command retrieves network information based on the query.\n"
@@ -25,3 +26,7 @@ def explain_general(query, command, output, device_name=""):
         f"Course of action:\n{course}\n\n"
         f"Summary:\n{summary}"
     )
+
+if __name__ == "__main__":
+    # Test the function
+    print(explain_general("test query", "test command", "test output", device_name="test_device", baseline={"dummy": "value"}))

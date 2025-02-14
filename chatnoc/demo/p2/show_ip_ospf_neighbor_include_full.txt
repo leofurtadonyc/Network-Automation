@@ -1,0 +1,5 @@
+P2#show ip ospf neighbor | include FULL
+100.65.255.1      0   FULL/  -        00:00:31    100.65.0.17     Ethernet0/3
+100.65.255.11     0   FULL/  -        00:00:37    100.65.0.5      Ethernet0/2
+100.65.255.4      0   FULL/  -        00:00:33    100.65.0.26     Ethernet0/1
+100.65.255.12     0   FULL/  -        00:00:38    100.65.0.13     Ethernet0/0

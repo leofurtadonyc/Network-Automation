@@ -2,6 +2,7 @@
 import re
 import json
 import sys
+import os
 import yaml
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -14,19 +15,43 @@ from command_mapper import get_command
 from netmiko_executor import execute_command
 from llm_interface import get_llm
 
-# Import specialized explanation functions from the explanations folder.
+# Import specialized explanation functions.
 from explanations.ospf_explanation import explain_ospf_neighbors
 from explanations.bgp_explanation import explain_bgp_neighbors
 from explanations.ldp_explanation import explain_ldp_neighbors, explain_ldp_label_binding
 from explanations.route_explanation import explain_route
 from explanations.general_explanation import explain_general
 
-# Import health-check functions from your healthcheck module.
+# Import health-check functions.
 from healthcheck import run_health_check_for_device, print_health_check_results
+
+# Global flag for demo mode.
+demo_mode = False
+
+def demo_execute_command(device, command):
+    """
+    In demo mode, instead of executing the command on the device,
+    load the command output from a file in the "demo" folder.
+    The filename is constructed as:
+         demo/<device.name.lower()>/<normalized_command>.txt
+    """
+    # Strip and normalize the command.
+    normalized = command.strip().lower().replace(" ", "_").replace("|", "").replace(":", "")
+    demo_file = os.path.join("demo", device.name.lower(), f"{normalized}.txt")
+    print(f"DEBUG: Looking for demo file: {demo_file}")  # Debug: confirm file path
+    if os.path.isfile(demo_file):
+        with open(demo_file, "r") as f:
+            content = f.read()
+        if not content.strip():
+            return "[Demo file is empty]"
+        return content
+    else:
+        return f"[Demo output not available for command: {command}]"
+
 
 def get_explanation_function(action):
     """
-    Return the specialized explanation function based on the action.
+    Return the appropriate explanation function based on the action.
     """
     if action in ["show_ospf_neighbors_full", "ospf_neighbors"]:
         return explain_ospf_neighbors
@@ -86,10 +111,26 @@ def parse_operator_query(query, llm):
     print("Error parsing LLM response, defaulting to empty intent.")
     return {}
 
+def display_help():
+    """
+    Read and display the contents of help.txt.
+    """
+    help_file = "help.txt"
+    if os.path.isfile(help_file):
+        with open(help_file, "r") as f:
+            print(f.read())
+    else:
+        print("No help file found.")
+
 def main_cli():
+    global demo_mode
+    mode_prompt = lambda: "demo-mode > " if demo_mode else "ChatNOC > "
     banner = pyfiglet.figlet_format("ChatNOC")
     print(banner)
-    print("Welcome to ChatNOC interactive shell. Type 'exit' or 'quit' to exit.\n")
+    print("Welcome to ChatNOC interactive shell by Leonardo Furtado (https://github.com/leofurtadonyc/Network-Automation).")
+    print("Type 'help' to see usage instructions.")
+    print("Type 'demo' to enter demo mode (dry-run with pre-saved outputs).")
+    print("When in demo mode, 'exit' returns to normal mode; in normal mode, 'exit' quits the program.\n")
     
     session = PromptSession(
         history=FileHistory('chatnoc_history.txt'),
@@ -103,13 +144,33 @@ def main_cli():
     
     while True:
         try:
-            query = session.prompt("Enter your query: ")
+            query = session.prompt(mode_prompt())
+            
+            # Handle help command.
+            if query.strip().lower() == "help":
+                display_help()
+                continue
+            
+            # Mode switching: "demo" to enable demo mode.
+            if query.strip().lower() == "demo":
+                demo_mode = True
+                print("\nDemo mode enabled. In demo mode, no live connections will be made; pre-saved outputs from the demo folder will be used.")
+                print("Available devices for demo: P1 to P8 (Cisco IOS), PE1-Junos (Juniper), PE2-IOSXR (Cisco IOS XR), PE3-Huawei (NE40E), and PE4-Nokia (Nokia 7750 SR).\n")
+                continue
+            
+            # In demo mode, "exit" returns to normal mode.
+            if demo_mode and query.strip().lower() == "exit":
+                demo_mode = False
+                print("\nExiting demo mode. Now operating in normal mode.\n")
+                continue
+            # In normal mode, "exit" quits the program.
+            if not demo_mode and query.strip().lower() in ["exit", "quit"]:
+                print("Goodbye!")
+                break
+            
             if not query.strip():
                 print("Forgot to ask something? I'm here to help!")
                 continue
-            if query.strip().lower() in ["exit", "quit"]:
-                print("Goodbye!")
-                break
             
             intent = parse_operator_query(query, llm)
             if not intent or not intent.get("action"):
@@ -188,33 +249,39 @@ def main_cli():
                         combined_output = ""
                         for cmd in cmd_result:
                             print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd}")
-                            out = execute_command(device, cmd)
+                            out = demo_execute_command(device, cmd) if demo_mode else execute_command(device, cmd)
                             combined_output += out + "\n"
-                        # Use the specialized explanation function.
-                        explain_func = get_explanation_function(action)
                         device_results.append({
                             "device_name": device.name,
                             "command": "; ".join(cmd_result),
                             "output": combined_output,
                             "baseline": baseline_data.get(device.name) if baseline_data and baseline_data.get(device.name) else None,
-                            "explain_func": explain_func
+                            "explain_func": get_explanation_function(action)
                         })
                     else:
                         print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd_result}")
-                        out = execute_command(device, cmd_result)
-                        explain_func = get_explanation_function(action)
+                        out = demo_execute_command(device, cmd_result) if demo_mode else execute_command(device, cmd_result)
                         device_results.append({
                             "device_name": device.name,
                             "command": cmd_result,
                             "output": out,
                             "baseline": baseline_data.get(device.name) if baseline_data and baseline_data.get(device.name) else None,
-                            "explain_func": explain_func
+                            "explain_func": get_explanation_function(action)
                         })
-                # For multi-device, combine explanations by calling each device's explain_func.
                 explanations = []
                 for result in device_results:
-                    exp = result["explain_func"](query, result["command"], result["output"], result["device_name"], baseline=result.get("baseline"))
-                    explanations.append(exp)
+                    if "Failed to execute command" in result["output"]:
+                        error_msg = (
+                            f"Error executing command on {result['device_name']}: {result['output']}\n"
+                            "Troubleshooting suggestions:\n"
+                            "  1. Verify that the device is powered on and reachable.\n"
+                            "  2. Check the hostname/IP address and TCP port.\n"
+                            "  3. Ensure that no firewall is blocking the connection."
+                        )
+                        explanations.append(error_msg)
+                    else:
+                        exp = result["explain_func"](query, result["command"], result["output"], result["device_name"], baseline=result.get("baseline"))
+                        explanations.append(exp)
                 divider = "\n" + ("-" * 80) + "\n"
                 combined_explanation = divider.join(explanations)
                 print("\n" + combined_explanation)
@@ -246,63 +313,28 @@ def main_cli():
                     combined_output = ""
                     for cmd in cmd_result:
                         print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd}")
-                        out = execute_command(device, cmd)
+                        out = demo_execute_command(device, cmd) if demo_mode else execute_command(device, cmd)
                         combined_output += out + "\n"
                     explain_func = get_explanation_function(action)
-                    explanation_text = explain_func(query, "; ".join(cmd_result), combined_output, device_name=device.name, baseline=None)
+                    if "Failed to execute command" in combined_output:
+                        print(f"\nError executing command on {device.name}: {combined_output}")
+                    else:
+                        explanation_text = explain_func(query, "; ".join(cmd_result), combined_output, device_name=device.name, baseline=None)
+                        print("\n" + explanation_text)
                 else:
                     print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd_result}")
-                    out = execute_command(device, cmd_result)
+                    out = demo_execute_command(device, cmd_result) if demo_mode else execute_command(device, cmd_result)
                     explain_func = get_explanation_function(action)
-                    explanation_text = explain_func(query, cmd_result, out, device_name=device.name, baseline=None)
-                print("\n" + explanation_text)
+                    if "Failed to execute command" in out:
+                        print(f"\nError executing command on {device.name}: {out}")
+                    else:
+                        explanation_text = explain_func(query, cmd_result, out, device_name=device.name, baseline=None)
+                        print("\n" + explanation_text)
         except KeyboardInterrupt:
             print("\nExiting...")
             break
         except Exception as e:
             print(f"Error: {e}\n")
-
-def get_explanation_function(action):
-    """
-    Return the appropriate explanation function based on the action.
-    """
-    if action in ["show_ospf_neighbors_full", "ospf_neighbors"]:
-        return explain_ospf_neighbors
-    elif action == "bgp_neighbors":
-        return explain_bgp_neighbors
-    elif action == "ldp_neighbors":
-        return explain_ldp_neighbors
-    elif action == "ldp_label_binding":
-        return explain_ldp_label_binding
-    elif action == "check_route":
-        return explain_route
-    else:
-        return explain_general
-
-def explain_general(query, command, output, device_name="", baseline=None):
-    """
-    A fallback general explanation function.
-    """
-    explanation = (
-        "This command retrieves network information based on the query.\n"
-        "Review the output for any inconsistencies or unexpected information."
-    )
-    course = (
-        "Actions:\n"
-        "  - If the output is not as expected, verify the device's configuration and relevant settings."
-    )
-    summary = (
-        f"Input Query: {query}\n"
-        f"Command Executed: {command} on device(s) {device_name}\n"
-    )
-    return (
-        f"Device Output:\n{output}\n\n"
-        "------------------------------\n\n"
-        f"Command issued:\n{command}\n\n"
-        f"Explanation:\n{explanation}\n\n"
-        f"Course of action:\n{course}\n\n"
-        f"Summary:\n{summary}"
-    )
 
 if __name__ == "__main__":
     main_cli()
