@@ -220,3 +220,18 @@
 
 # 2025-02-14 15:53:19.417089
 +what interfaces are down on p2?
+
+# 2025-02-14 15:59:41.499015
++how many OSPF adjacencies does P1 have?
+
+# 2025-02-14 16:00:16.978485
++how many BGP sessions does P1 have?
+
+# 2025-02-14 16:00:43.367924
++how many OSPF routes does P2 have?
+
+# 2025-02-14 16:01:55.038168
++can device p1 reach 100.65.255.14?\
+
+# 2025-02-14 16:01:58.867498
++can device p1 reach 100.65.255.14?

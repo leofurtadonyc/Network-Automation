@@ -24,10 +24,10 @@ COMMAND_MAP = {
         "nokia_sr": "show router interface brief | include Management"
     },
     "show_ospf_routes_count": {
-        "cisco": "show ip ospf route",
-        "cisco_xe": "show ip ospf route",
+        "cisco": "show ip route ospf",
+        "cisco_xe": "show ip route ospf",
         "juniper_junos": "show route protocol ospf",
-        "cisco_xr": "show ospf route",
+        "cisco_xr": "show route ospf",
         "huawei_vrp": "display ospf routing-table",
         "nokia_sr": "show router ospf route"
     },

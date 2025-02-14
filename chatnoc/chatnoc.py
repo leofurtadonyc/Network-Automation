@@ -75,12 +75,15 @@ def main_cli():
     llm = get_llm()
     inventory = DeviceInventory()
     
-    # Predefine actions that do NOT require a destination IP.
+    # Define actions that do not require a destination IP.
     actions_no_dest_required = ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]
     
     while True:
         try:
             query = session.prompt("Enter your query: ")
+            if not query.strip():
+                print("Forgot to ask something? I'm here to help!")
+                continue
             if query.strip().lower() in ["exit", "quit"]:
                 print("Goodbye!")
                 break
@@ -121,7 +124,6 @@ def main_cli():
                 continue
             
             # For non-healthcheck queries:
-            # Split target device if multiple devices are specified.
             if any(sep in target_device_str.lower() for sep in [",", " and "]):
                 device_names = [name.strip() for name in re.split(r',|\band\b', target_device_str, flags=re.IGNORECASE)]
                 devices = []
@@ -135,20 +137,17 @@ def main_cli():
                     print("No valid devices found in the target list.")
                     continue
                 extra_params = {}
-                # Only require destination IP if the action is NOT in the no-dest list.
                 if action not in actions_no_dest_required and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
                     extra_params["destination_ip"] = intent.get("destination_ip", "")
                     if not extra_params["destination_ip"]:
                         print("Destination IP address is required for this action.")
                         continue
-                # For actions like ping and traceroute, get source IP if provided.
                 if action in ["ping", "traceroute"]:
                     extra_params["source_ip"] = intent.get("source_ip", "")
                 if action in ["ldp_label_binding"]:
                     extra_params["mask"] = intent.get("mask", "")
-                # For BGP and LDP neighbor queries, no destination is required.
+                # For neighbor queries like BGP or LDP neighbors, no destination is required.
                 device_results = []
-                # For certain neighbor queries, load baseline data once.
                 baseline_data = None
                 if action in ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]:
                     try:
@@ -157,14 +156,12 @@ def main_cli():
                     except Exception as e:
                         print(f"Error loading baseline file: {e}")
                 for device in devices:
-                    # For ping/traceroute, default source_ip to device.loopback_address if not provided.
                     if action in ["ping", "traceroute"] and not extra_params.get("source_ip"):
                         extra_params["source_ip"] = device.loopback_address
                     cmd_result = get_command(action, device.device_type, **extra_params)
                     if not cmd_result:
                         print(f"No command mapping found for action '{action}' on device type '{device.device_type}'.")
                         continue
-                    # If multiple commands are returned (as a list), execute each and combine outputs.
                     if isinstance(cmd_result, list):
                         combined_output = ""
                         for cmd in cmd_result:
