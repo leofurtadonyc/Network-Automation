@@ -1,9 +1,9 @@
 # Network-Automation
-These are collections of small Python projects and script utilities designed for network automation. They encompass simple yet useful tasks, providing an avenue for learning and experimenting with network automation using Python.
+These are collections of small Python projects and script utilities designed for network automation. They encompass simple yet practical tasks and provide an avenue for learning and experimenting with network automation using Python.
 
-I suggest that you take a look at what **NetProvisionCLI** has to offer your ISP organization. It consolidates many ideas from different scripts and concepts found in this repository while offering much more comprehensive and improved features.
+You should consider exploring **NetProvisionCLI** and **ChatNOC** for your ISP organization. These projects combine and enhance various scripts and concepts from this repository, offering more robust and comprehensive features.
 
-To prevent interference with your Python environment, ensure that you use it within a Python virtual environment. You can create one using the '`python -m venv name_environment`' command, then activate it with '`source name_environment/bin/activate`'. Alternatively, you may use Pipenv, Poetry, Conda, or any other tool you choose. 
+Please use it within a Python virtual environment to avoid interfering with your Python environment. You can create one using the '`python -m venv name_environment`' command, then activate it with '`source name_environment/bin/activate`'. Alternatively, you may use Pipenv, Poetry, Conda, or any other tool you choose. 
 
 Easy steps (on a Mac computer):
 
@@ -23,8 +23,8 @@ On Windows:
 5. `pip install --upgrade pip` (if needed)
 6. `pip install -r .\Network-Automation\requirements.txt`
 
-While a requirements.txt file for managing Python dependencies has been included, there may be issues depending on your operating system. Non-Python dependencies also exist, so ensure BGPq3 and Whois are installed if your computer doesn't already have them.
+While a _requirements.txt_ file for managing Python dependencies has been included, there may be issues depending on your operating system. Non-Python dependencies also exist, so please ensure BGPq3 or BGPq4 and Whois are installed if your computer doesn't already have them.
 
 Check the [Wiki pages](https://github.com/leofurtadonyc/Network-Automation/wiki) for detailed instructions and use cases.
 
-Feel free to reach out to me with any suggestions, tips, code reviews, or other input you might have!
+Please reach out to me with any suggestions, tips, code reviews, or other input you might have!
