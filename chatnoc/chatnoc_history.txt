@@ -190,3 +190,33 @@
 
 # 2025-02-14 15:27:20.374918
 +can device p1 reach 8.8.8.8
+
+# 2025-02-14 15:33:45.937006
++can device p1 reach 8.8.8.8?
+
+# 2025-02-14 15:34:02.577758
++can device p1 reach 1.1.1.1?
+
+# 2025-02-14 15:34:31.043767
++How many OSPF neighbors does P1 have?
+
+# 2025-02-14 15:35:54.117258
++how many BGP sessions does P1 have?
+
+# 2025-02-14 15:46:36.025178
++how many OSPF adjacencies does P1 have?
+
+# 2025-02-14 15:47:58.661343
++how many LDP neighbors does P1 have?
+
+# 2025-02-14 15:48:21.193766
++how many BGP sessions does P1 have?
+
+# 2025-02-14 15:52:28.127938
++how many LDP neighbors does P1 have?
+
+# 2025-02-14 15:52:53.766474
++how many OSPF adjacencies does P1 have?
+
+# 2025-02-14 15:53:19.417089
++what interfaces are down on p2?

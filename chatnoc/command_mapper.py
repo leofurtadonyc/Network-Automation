@@ -86,7 +86,15 @@ COMMAND_MAP = {
         "cisco_xr": "show mpls ldp binding | include {destination_ip}",
         "huawei_vrp": "display mpls ldp binding | include {destination_ip}",
         "nokia_sr": "show router mpls ldp binding | include {destination_ip}"
-    }
+    },
+    "ldp_neighbors": {
+        "cisco": "show mpls ldp neighbor",
+        "cisco_xe": "show mpls ldp neighbor",
+        "juniper_junos": "show mpls ldp neighbor",
+        "cisco_xr": "show mpls ldp neighbor",
+        "huawei_vrp": "display mpls ldp neighbor",
+        "nokia_sr": "show router mpls ldp neighbor"
+    },
 }
 
 def get_command(action, device_type, **kwargs):

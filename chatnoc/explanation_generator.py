@@ -1,6 +1,6 @@
 # explanation_generator.py
 
-def generate_explanation(query, command, output, device_name=""):
+def generate_explanation(query, command, output, device_name="", baseline=None):
     """
     Generate a structured explanation with these sections:
       - Device Output: The raw output from the device.
@@ -8,16 +8,18 @@ def generate_explanation(query, command, output, device_name=""):
       - Explanation: Detailed description of what the command does and why it was used.
       - Course of action: Recommended next steps and verifications.
       - Summary: Recap of the query and command executed (including device name if provided).
+
+    If a baseline dictionary is provided (from healthcheck_baseline.yaml),
+    additional information will be included for BGP, OSPF, or LDP neighbor queries.
     """
     lower_query = query.lower()
     cmd_section = f"{command}"
     explanation_section = ""
     course_section = ""
-    
-    # Branch for "interfaces are down"
+
     if "interfaces are down" in lower_query:
         explanation_section = (
-            "This command retrieves the interface status and filters for interfaces that are down. "
+            "This command retrieves interface status and filters for interfaces that are down. "
             "It quickly identifies interfaces that are administratively shut down."
         )
         course_section = (
@@ -37,36 +39,43 @@ def generate_explanation(query, command, output, device_name=""):
         )
     elif "ospf routes" in lower_query:
         explanation_section = (
-            "This command lists the OSPF routes known to the device, providing insight into the health of the OSPF routing domain."
+            "This command lists the OSPF routes known to the device, providing insight into the OSPF routing domain."
         )
         course_section = (
             "Actions:\n"
             "  - If routes are missing or unexpected, review OSPF configurations and neighbor adjacencies."
         )
     elif "show ip route" in command:
-        # Distinguish between found route and not found.
-        if "Routing entry" in output:
-            explanation_section = (
-                "- The routing table contains an entry for the destination IP.\n"
-                "- This indicates that the device has learned a route (possibly via BGP, OSPF, or another protocol),\n"
-                "- suggesting that data plane connectivity may be available.\n"
-                "- Examine the route details (such as administrative distance, metric, and next-hop) to verify its reliability.\n"
-            )
-            course_section = (
-                "Actions:\n"
-                "  - Verify that the route's metric and administrative distance are acceptable.\n"
-                "  - Confirm that the next-hop is reachable and that the route aligns with expected network design.\n"
-                "  - If connectivity issues persist despite a valid route, investigate upstream advertisements and possible routing flaps.\n"
-            )
+        if "100.65.255." in command or "100.65.255." in output:
+            if "Routing entry" in output:
+                explanation_section = (
+                    "The routing table contains an entry for the destination IP within the 100.65.255.0/24 range. "
+                    "This indicates that the device has learned a route (via BGP, OSPF, etc.) and data plane connectivity may be available.\n"
+                    "Examine the route details (administrative distance, metric, next-hop) to assess its reliability."
+                )
+                course_section = (
+                    "Actions:\n"
+                    "  - Verify that the route's metric and administrative distance meet expectations.\n"
+                    "  - Confirm the next-hop is reachable and that the route aligns with your network design.\n"
+                    "  - If connectivity issues persist despite the route, investigate upstream advertisements and route flaps."
+                )
+            else:
+                explanation_section = (
+                    "No valid route to the destination IP was found in the routing table. "
+                    "This suggests that the device lacks a known path to the destination."
+                )
+                course_section = (
+                    "Actions:\n"
+                    "  - Review the device's routing configuration and ensure correct routes are being advertised upstream.\n"
+                    "  - Verify that the destination IP is correct and required routing protocols are active."
+                )
         else:
             explanation_section = (
-                "- No valid route to the destination IP was found in the routing table.\n"
-                "- This suggests that the device does not have a known path to the destination.\n"
+                "This command checks for a valid route to the specified destination IP."
             )
             course_section = (
                 "Actions:\n"
-                "  - Review the device's routing configuration and ensure that the correct routes are being advertised by upstream devices.\n"
-                "  - Verify that the destination IP is correct and that all required routing protocols are properly configured."
+                "  - If no route is found, review the routing configuration and route advertisements from upstream devices."
             )
     elif "uptime" in lower_query:
         explanation_section = (
@@ -74,61 +83,65 @@ def generate_explanation(query, command, output, device_name=""):
         )
         course_section = (
             "Actions:\n"
-            "  - A high uptime suggests stability; if unexpectedly low, investigate recent reboots or issues."
+            "  - High uptime indicates stability; if low, investigate recent reboots or issues."
         )
-    elif "ospf neighbor" in lower_query:
+    elif "ospf neighbor" in lower_query or "ospf neighbors" in lower_query:
         explanation_section = (
-            "This command displays OSPF neighbor adjacencies, indicating which neighbors have completed the exchange of routing information."
+            "This command displays OSPF neighbor adjacencies, indicating which neighbors have fully exchanged routing information."
         )
-        if "how many" in lower_query or "number" in lower_query:
-            lines = [line for line in output.splitlines() if line.strip()]
-            count = len(lines)
-            explanation_section += f" The output shows {count} neighbor(s) in the FULL state."
-            course_section = (
-                "Actions:\n"
-                "  - If the number of FULL neighbors is lower than expected, verify connectivity and review OSPF configurations."
-            )
-        else:
-            course_section = (
-                "Actions:\n"
-                "  - If fewer FULL neighbors are observed than expected, verify connectivity and device configurations."
-            )
+        # Attempt to count FULL state neighbors from the output.
+        lines = [line for line in output.splitlines() if line.strip()]
+        count = len(lines)
+        explanation_section += f" The output shows {count} neighbor(s) in the FULL state."
+        if baseline and baseline.get("backbone_interfaces"):
+            expected = [iface.get("peer") for iface in baseline.get("backbone_interfaces") if iface.get("ospf_adjacency", "").lower() == "full"]
+            explanation_section += f" Baseline expects these neighbors: {', '.join(expected)}."
+        course_section = (
+            "Actions:\n"
+            "  - If the number of FULL neighbors is lower than expected, verify connectivity and review OSPF configurations."
+        )
     elif "ping" in lower_query:
         explanation_section = (
             "This command sends ICMP echo requests (pings) from the specified source to the destination IP to verify data plane connectivity."
         )
         course_section = (
             "Actions:\n"
-            "  - Examine the ping results. High packet loss or no replies indicate connectivity issues. "
-            "    Verify that the source IP is correct and reachable."
+            "  - Examine the ping results; high packet loss or no replies indicate connectivity issues.\n"
+            "  - Verify that the source IP is correct and reachable."
         )
     elif "traceroute" in lower_query:
         explanation_section = (
-            "This command performs a traceroute from the specified source to the destination IP, mapping the packet path through the network."
+            "This command performs a traceroute from the specified source to the destination IP, mapping the network path."
         )
         course_section = (
             "Actions:\n"
-            "  - Review the traceroute output for timeouts or unreachable hops, which may indicate routing issues. "
-            "    Verify the source configuration and network path if problems are observed."
+            "  - Review the traceroute output for timeouts or unreachable hops, which may indicate routing issues.\n"
+            "  - Verify the source configuration and network path if problems are observed."
         )
     elif "bgp neighbor" in lower_query or "bgp neighbors" in lower_query:
         explanation_section = (
-            "This command displays the BGP neighbor summary, listing the BGP peers and their connection status."
+            "This command displays the BGP neighbor summary, listing BGP peers and their connection status."
         )
+        if baseline and baseline.get("bgp_peers"):
+            expected = baseline.get("bgp_peers")
+            explanation_section += f" Baseline expects BGP neighbors: {', '.join(expected)}."
         course_section = (
             "Actions:\n"
-            "  - Review the output for any peers that are not in an 'established' state. "
-            "    For those, check the BGP configuration and underlying connectivity."
+            "  - Review the output for any peers not in an 'established' state.\n"
+            "  - For peers that are missing or not established, verify BGP configurations and underlying connectivity."
         )
     elif "ldp label binding" in lower_query or "ldp binding" in lower_query:
         explanation_section = (
             "This command retrieves the LDP label binding for the specified destination prefix. "
-            "For Cisco IOS XE devices, the command includes the mask value to provide specificity."
+            "For Cisco IOS XE devices, the command includes the mask value for specificity."
         )
+        if baseline and baseline.get("ldp_expected"):
+            expected = baseline.get("ldp_expected")
+            explanation_section += f" Baseline expects LDP bindings for: {', '.join(expected)}."
         course_section = (
             "Actions:\n"
-            "  - Verify that the correct label is bound for the destination. "
-            "    If the label binding is missing or incorrect, review LDP session status and device configuration."
+            "  - Verify that the label binding exists and that the correct label is assigned.\n"
+            "  - If missing or incorrect, review LDP session status and device configuration."
         )
     else:
         explanation_section = (
@@ -161,9 +174,8 @@ def generate_explanation_multi(query, device_results):
     
     Parameters:
       query (str): The operator's query.
-      device_results (list): A list of dictionaries with keys:
-                             "device_name", "command", and "output".
-                             
+      device_results (list): A list of dictionaries with keys: "device_name", "command", and "output".
+      
     Returns:
       A single string concatenating each device's structured explanation, separated by a divider.
     """
@@ -176,10 +188,6 @@ def generate_explanation_multi(query, device_results):
 
 if __name__ == "__main__":
     # Example tests:
-    sample_query = "can device p1 reach 8.8.8.8"
-    sample_command = "show ip route 8.8.8.8"
-    sample_output_not_found = "% Network not in table"
-    
     sample_query_found = "can device p1 reach 1.1.1.1"
     sample_command_found = "show ip route 1.1.1.1"
     sample_output_found = (
@@ -193,6 +201,9 @@ if __name__ == "__main__":
         "    AS Hops 2, Route tag 64513\n"
         "    MPLS label: none"
     )
+    sample_query_not_found = "can device p1 reach 8.8.8.8"
+    sample_command_not_found = "show ip route 8.8.8.8"
+    sample_output_not_found = "% Network not in table"
     
     print("Test (Route Found):")
     print(generate_explanation(sample_query_found, sample_command_found, sample_output_found, device_name="P1"))
@@ -200,4 +211,4 @@ if __name__ == "__main__":
     print("\n" + ("=" * 80) + "\n")
     
     print("Test (Route Not Found):")
-    print(generate_explanation(sample_query, sample_command, sample_output_not_found, device_name="P1"))
+    print(generate_explanation(sample_query_not_found, sample_command_not_found, sample_output_not_found, device_name="P1"))
