@@ -1,0 +1,47 @@
+approved_topics:
+- ansible
+- bgp
+- dmvpn
+- dpdk
+- evpn
+- fd.io
+- flexvpn
+- getvpn
+- gNMI
+- grafana
+- grpc
+- influxdb
+- ipsec
+- ipv4
+- ipv6
+- kafka
+- l2vpn
+- l3vpn
+- ldp
+- macsec
+- mpls
+- mpls te
+- netconf
+- nfv
+- openconfig
+- openflow
+- openstack
+- openvswitch
+- ospf
+- p4
+- prometheus
+- python
+- restconf
+- sd-access
+- sd-wan
+- sdn
+- segment routing
+- srv6
+- ssl vpn
+- stratum
+- telemetry
+- vpls
+- vpp
+- vpws
+- vxlan
+- yang
