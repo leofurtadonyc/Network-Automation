@@ -25,6 +25,22 @@ from explanations.general_explanation import explain_general
 # Import health-check functions.
 from healthcheck import run_health_check_for_device, print_health_check_results
 
+import random
+
+funny_lines = [
+    "Need some network wisdom? I've got packets of knowledge to share!",
+    "Router troubles? Let's troubleshoot together - I promise not to byte!",
+    "Got a networking puzzle? I'm your personal CLI whisperer!",
+    "Lost in configuration? Don't worry, I'm your friendly neighborhood network guide!",
+    "Questions about protocols? TCP/IP and chill!",
+    "Network down? Keep calm and query on - I'm here!",
+    "Forgot to ask something? I'm here to help!",
+    "Have a question in mind? Go ahead and ask!",
+    "Need routing assistance? I'll help you find the path of least resistance!",
+    "BGP giving you grief? Let's peer into the problem together!",
+    "OSPF acting up? Don't worry, we'll get your areas in order!",
+    "Don't tell me your MPLS services are affected again! Nooooo!!"
+]
 # Global flag for demo mode.
 demo_mode = False
 
@@ -169,7 +185,7 @@ def main_cli():
                 break
             
             if not query.strip():
-                print("Forgot to ask something? I'm here to help!")
+                print(random.choice(funny_lines))
                 continue
             
             intent = parse_operator_query(query, llm)
