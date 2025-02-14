@@ -1,47 +1,159 @@
 approved_topics:
-- ansible
-- bgp
-- dmvpn
-- dpdk
-- evpn
-- fd.io
-- flexvpn
-- getvpn
+- 802.1x
+- 802.1q
+- Ansible
+- API-driven Networking
+- Application Aware Networking
+- Artificial Intelligence in Networking
+- BGP
+- BGP Route Reflectors
+- Broadband Access
+- Campus Networking
+- Carrier Ethernet
+- Cloud Connectivity
+- Cloud Networking
+- Cloud SD-WAN
+- Cloud-based Network Management
+- CMP (Cloud Management Platforms)
+- Cumulus Linux
+- Data Center Automation
+- Data Center Fabric
+- Data Center Interconnect
+- Data Center Interconnect Optimization
+- Data Center Networking
+- Data Center Virtualization
+- DDoS Mitigation
+- DMVPN
+- DPDK
+- Edge Computing
+- Edge Network Security
+- Ethernet
+- EVPN
+- FD.io
+- FlexVPN
+- Firewall Virtualization
+- Flow Monitoring
+- Fog Computing
+- FCoE
+- GetVPN
 - gNMI
-- grafana
+- Grafana
 - grpc
-- influxdb
-- ipsec
-- ipv4
-- ipv6
-- kafka
-- l2vpn
-- l3vpn
-- ldp
-- macsec
-- mpls
-- mpls te
-- netconf
-- nfv
-- openconfig
-- openflow
-- openstack
-- openvswitch
-- ospf
-- p4
-- prometheus
-- python
-- restconf
-- sd-access
-- sd-wan
-- sdn
-- segment routing
-- srv6
-- ssl vpn
-- stratum
-- telemetry
-- vpls
-- vpp
-- vpws
-- vxlan
-- yang
+- GRE Tunneling
+- Healthcheck
+- In-band Network Telemetry
+- InfluxDB
+- Intent-Based Networking
+- IP Multicast
+- IPsec
+- IPv4
+- IPv6
+- iSCSI
+- ISIS
+- IT Automation
+- Juniper Junos
+- Kafka
+- LAN Segmentation
+- L2VPN
+- L3VPN
+- LACP
+- LAN Switching
+- Link Aggregation
+- LLDP
+- LDP
+- MACsec
+- MAN (Metropolitan Area Network)
+- MEF (Metro Ethernet Forum)
+- Metro Ethernet
+- MPLS
+- MPLS TE
+- Multi-tenancy
+- Network Analytics
+- Network Automation
+- Network Behavior Analysis
+- Network Function Virtualization (NFV)
+- Network Orchestration
+- Network Performance Monitoring
+- Network Policy
+- Network Programmability
+- Network Security
+- Network Slicing
+- Network Virtualization
+- NetConf
+- NetFlow
+- NFV
+- NaaS (Network as a Service)
+- Open API
+- OpenConfig
+- OpenDaylight
+- OpenFlow
+- OpenStack
+- OpenSwitch
+- OpenTelemetry
+- Open vSwitch
+- Optical Networking
+- Overlay Networking
+- OSPF
+- OSPFv3
+- Packet Capture
+- P4
+- Predictive Analytics in Networking
+- Policy-Based Routing
+- Port Channeling
+- Programmable Data Planes
+- QoS (Quality of Service)
+- Quality of Experience (QoE)
+- REST API
+- RESTCONF
+- RMON (Remote Monitoring)
+- SD-Access
+- SD-WAN
+- SDN (Software-Defined Networking)
+- Segmentation Routing
+- Security Automation
+- Service Chaining
+- Service Provider SDN
+- Service Virtualization
+- SLA Monitoring
+- SONiC (Software for Open Networking in the Cloud)
+- SPINE-LEAF Architecture
+- Stateful Firewalling
+- Storage Networking
+- TCP/IP
+- Telemetry
+- Traffic Engineering
+- TRILL
+- Traffic Shaping
+- UDP
+- Unified Communications Networking
+- Uptime Monitoring
+- Virtual Extensible LAN (VXLAN)
+- Virtual LAN Management
+- Virtualized Network Functions
+- Virtual Switching
+- VLAN
+- VPLS
+- VPP
+- VPWS
+- Virtual Private Network (VPN)
+- Virtualization in Networking
+- WAN Convergence
+- WAN Optimization
+- WAN Technologies
+- Web-Scale Networking
+- Wi-Fi 6 (802.11ax)
+- Wireless LAN
+- Wireless Mesh Networking
+- WDM (Wavelength Division Multiplexing)
+- XMPP in Networking
+- Yang
+- Zero Trust Networking
+- ZTP (Zero Touch Provisioning)
+- Zero Configuration Networking
+- Zero Downtime Networking
+- Zero Packet Loss Networking
+- Zero Touch Networking
+- Zero Trust Security
+- Zero Trust Architecture
+- Zero Trust Networking
+- Zone-Based Firewalling
