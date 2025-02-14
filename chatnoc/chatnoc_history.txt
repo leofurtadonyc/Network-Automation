@@ -1,30 +1,27 @@
 
-# 2025-02-14 20:56:57.352866
-+How many OSPF routes does P1 have?
+# 2025-02-14 22:02:23.902215
++how many OSPF routes does P2 have?
 
-# 2025-02-14 20:57:07.496048
-+Can device P1 reach 100.65.255.14?
+# 2025-02-14 22:02:35.949582
++can device P1 reach 100.65.255.14?
 
-# 2025-02-14 20:57:15.961716
-+How many BGP sessions does P1 have?
+# 2025-02-14 22:02:44.346432
++how many BGP sessions does P1 have?
 
-# 2025-02-14 20:57:21.817744
-+Show interfaces down on P1
+# 2025-02-14 22:02:54.086420
++show interfaces down on P1
 
-# 2025-02-14 20:57:29.619383
-+Can device p1 ping 100.65.255.14 using its loopback0 as a source?
+# 2025-02-14 22:03:03.915672
++can device p1 ping 100.65.255.14 using its loopback0 as a source?
 
-# 2025-02-14 20:57:52.147157
-+Can device p1 ping 100.65.255.14 using its Ethernet 0/3 as a source?
+# 2025-02-14 22:03:17.442985
++Do a traceroute to 100.65.255.14 from P1's loopback0 interface
 
-# 2025-02-14 20:58:00.612240
-+Do a traceroute to 100.65.255.14 from P1's loopback interface
-
-# 2025-02-14 20:58:09.378630
+# 2025-02-14 22:03:29.085539
 +Healthcheck P1
 
-# 2025-02-14 20:58:22.289562
+# 2025-02-14 22:03:40.820964
 +Device P2 looks weird, could you check it for me?
 
-# 2025-02-14 21:00:09.237987
-+exit
+# 2025-02-14 22:03:50.835796
++Check for LDP binding of prefix 100.65.255.13 32 on device P2

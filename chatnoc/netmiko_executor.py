@@ -1,6 +1,6 @@
 # netmiko_executor.py
 from netmiko import ConnectHandler
-from auth_manager import get_credentials
+from auth_manager import get_credentials as load_credentials
 
 # Mapping from our device_type names to Netmiko device types
 DEVICE_TYPE_MAPPING = {
@@ -12,16 +12,31 @@ DEVICE_TYPE_MAPPING = {
     "nokia_sr": "nokia_sros"
 }
 
+# Global variable to cache credentials.
+CREDENTIALS = None
+
+def get_cached_credentials():
+    """
+    Retrieve credentials from auth_manager and cache them for subsequent calls.
+    """
+    global CREDENTIALS
+    if CREDENTIALS is None:
+        try:
+            CREDENTIALS = load_credentials()
+        except Exception as e:
+            raise Exception(f"Authentication error: {e}")
+    return CREDENTIALS
+
 def execute_command(device, command):
     netmiko_device_type = DEVICE_TYPE_MAPPING.get(device.device_type)
     if not netmiko_device_type:
         return f"Unsupported device type: {device.device_type} for device {device.name}"
     
-    # Retrieve credentials based on authentication settings.
+    # Retrieve cached credentials.
     try:
-        username, password = get_credentials()
+        username, password = get_cached_credentials()
     except Exception as e:
-        return f"Authentication error: {e}"
+        return str(e)
 
     device_params = {
         "device_type": netmiko_device_type,
