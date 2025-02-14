@@ -241,3 +241,15 @@
 
 # 2025-02-14 16:08:00.432803
 +how many BGP sessions does P1 have?
+
+# 2025-02-14 16:39:19.518213
++how many OSPF routes does P2 have?
+
+# 2025-02-14 16:41:13.375025
++how many BGP sessions does P1 have?
+
+# 2025-02-14 16:41:33.499702
++how many OSPF routes does P2 have?
+
+# 2025-02-14 16:42:18.098985
++is p1 router healthy?

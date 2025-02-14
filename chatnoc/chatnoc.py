@@ -13,10 +13,33 @@ from devices_inventory import DeviceInventory
 from command_mapper import get_command
 from netmiko_executor import execute_command
 from llm_interface import get_llm
-from explanation_generator import generate_explanation, generate_explanation_multi
+
+# Import specialized explanation functions from the explanations folder.
+from explanations.ospf_explanation import explain_ospf_neighbors
+from explanations.bgp_explanation import explain_bgp_neighbors
+from explanations.ldp_explanation import explain_ldp_neighbors, explain_ldp_label_binding
+from explanations.route_explanation import explain_route
+from explanations.general_explanation import explain_general
 
 # Import health-check functions from your healthcheck module.
 from healthcheck import run_health_check_for_device, print_health_check_results
+
+def get_explanation_function(action):
+    """
+    Return the specialized explanation function based on the action.
+    """
+    if action in ["show_ospf_neighbors_full", "ospf_neighbors"]:
+        return explain_ospf_neighbors
+    elif action == "bgp_neighbors":
+        return explain_bgp_neighbors
+    elif action == "ldp_neighbors":
+        return explain_ldp_neighbors
+    elif action == "ldp_label_binding":
+        return explain_ldp_label_binding
+    elif action == "check_route":
+        return explain_route
+    else:
+        return explain_general
 
 def parse_operator_query(query, llm):
     """
@@ -109,7 +132,7 @@ def main_cli():
                         continue
                     print(f"\nPerforming health check on device {device.name} ({device.mgmt_address})...")
                     try:
-                        with open("healthcheck_baseline.yaml", "r") as f:
+                        with open("baseline/healthcheck_baseline.yaml", "r") as f:
                             baseline_data = yaml.safe_load(f)
                     except Exception as e:
                         print(f"Error loading baseline file: {e}")
@@ -146,12 +169,11 @@ def main_cli():
                     extra_params["source_ip"] = intent.get("source_ip", "")
                 if action in ["ldp_label_binding"]:
                     extra_params["mask"] = intent.get("mask", "")
-                # For neighbor queries like BGP or LDP neighbors, no destination is required.
                 device_results = []
                 baseline_data = None
                 if action in ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]:
                     try:
-                        with open("healthcheck_baseline.yaml", "r") as f:
+                        with open("baseline/healthcheck_baseline.yaml", "r") as f:
                             baseline_data = yaml.safe_load(f)
                     except Exception as e:
                         print(f"Error loading baseline file: {e}")
@@ -168,22 +190,33 @@ def main_cli():
                             print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd}")
                             out = execute_command(device, cmd)
                             combined_output += out + "\n"
+                        # Use the specialized explanation function.
+                        explain_func = get_explanation_function(action)
                         device_results.append({
                             "device_name": device.name,
                             "command": "; ".join(cmd_result),
                             "output": combined_output,
-                            "baseline": baseline_data.get(device.name) if baseline_data and baseline_data.get(device.name) else None
+                            "baseline": baseline_data.get(device.name) if baseline_data and baseline_data.get(device.name) else None,
+                            "explain_func": explain_func
                         })
                     else:
                         print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd_result}")
                         out = execute_command(device, cmd_result)
+                        explain_func = get_explanation_function(action)
                         device_results.append({
                             "device_name": device.name,
                             "command": cmd_result,
                             "output": out,
-                            "baseline": baseline_data.get(device.name) if baseline_data and baseline_data.get(device.name) else None
+                            "baseline": baseline_data.get(device.name) if baseline_data and baseline_data.get(device.name) else None,
+                            "explain_func": explain_func
                         })
-                combined_explanation = generate_explanation_multi(query, device_results)
+                # For multi-device, combine explanations by calling each device's explain_func.
+                explanations = []
+                for result in device_results:
+                    exp = result["explain_func"](query, result["command"], result["output"], result["device_name"], baseline=result.get("baseline"))
+                    explanations.append(exp)
+                divider = "\n" + ("-" * 80) + "\n"
+                combined_explanation = divider.join(explanations)
                 print("\n" + combined_explanation)
             else:
                 if not target_device_str:
@@ -215,17 +248,61 @@ def main_cli():
                         print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd}")
                         out = execute_command(device, cmd)
                         combined_output += out + "\n"
-                    explanation_text = generate_explanation(query, "; ".join(cmd_result), combined_output, device_name=device.name)
+                    explain_func = get_explanation_function(action)
+                    explanation_text = explain_func(query, "; ".join(cmd_result), combined_output, device_name=device.name, baseline=None)
                 else:
                     print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd_result}")
                     out = execute_command(device, cmd_result)
-                    explanation_text = generate_explanation(query, cmd_result, out, device_name=device.name)
+                    explain_func = get_explanation_function(action)
+                    explanation_text = explain_func(query, cmd_result, out, device_name=device.name, baseline=None)
                 print("\n" + explanation_text)
         except KeyboardInterrupt:
             print("\nExiting...")
             break
         except Exception as e:
             print(f"Error: {e}\n")
+
+def get_explanation_function(action):
+    """
+    Return the appropriate explanation function based on the action.
+    """
+    if action in ["show_ospf_neighbors_full", "ospf_neighbors"]:
+        return explain_ospf_neighbors
+    elif action == "bgp_neighbors":
+        return explain_bgp_neighbors
+    elif action == "ldp_neighbors":
+        return explain_ldp_neighbors
+    elif action == "ldp_label_binding":
+        return explain_ldp_label_binding
+    elif action == "check_route":
+        return explain_route
+    else:
+        return explain_general
+
+def explain_general(query, command, output, device_name="", baseline=None):
+    """
+    A fallback general explanation function.
+    """
+    explanation = (
+        "This command retrieves network information based on the query.\n"
+        "Review the output for any inconsistencies or unexpected information."
+    )
+    course = (
+        "Actions:\n"
+        "  - If the output is not as expected, verify the device's configuration and relevant settings."
+    )
+    summary = (
+        f"Input Query: {query}\n"
+        f"Command Executed: {command} on device(s) {device_name}\n"
+    )
+    return (
+        f"Device Output:\n{output}\n\n"
+        "------------------------------\n\n"
+        f"Command issued:\n{command}\n\n"
+        f"Explanation:\n{explanation}\n\n"
+        f"Course of action:\n{course}\n\n"
+        f"Summary:\n{summary}"
+    )
 
 if __name__ == "__main__":
     main_cli()
