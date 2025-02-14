@@ -7,9 +7,9 @@ def generate_explanation(query, command, output, device_name="", baseline=None):
     Generate a structured explanation with these sections:
       - Device Output: The raw output from the device.
       - Command issued: The command that was executed.
-      - Explanation: A detailed description of what the command does and why.
+      - Explanation: Detailed description of what the command does and why.
       - Course of action: Recommended next steps and verifications.
-      - Summary: A recap of the query and command executed (including device name if provided).
+      - Summary: Recap of the query and command executed (including device name if provided).
     
     If a baseline dictionary is provided (from healthcheck_baseline.yaml), additional comparison
     information is included for neighbor queries.
@@ -53,22 +53,23 @@ def generate_explanation(query, command, output, device_name="", baseline=None):
                 explanation_section = (
                     "The routing table contains an entry for the destination IP within the 100.65.255.0/24 range.\n"
                     "This indicates that the device has learned a route (via BGP, OSPF, etc.) and data plane connectivity may be available.\n"
-                    "Examine route details (administrative distance, metric, next-hop) to assess reliability."
+                    "Examine route details (administrative distance, metric, next-hop) to assess its reliability."
                 )
                 course_section = (
                     "Actions:\n"
-                    "  - Verify that the route's metric and administrative distance are acceptable.\n"
+                    "  - Verify that the route's metric and administrative distance meet expectations.\n"
                     "  - Confirm that the next-hop is reachable and that the route aligns with expected design.\n"
-                    "  - If issues persist despite the route, investigate upstream advertisements and potential routing flaps."
+                    "  - If connectivity issues persist despite the route, investigate upstream advertisements and route flaps."
                 )
             else:
                 explanation_section = (
-                    "No valid route to the destination IP was found in the routing table within the 100.65.255.0/24 range."
+                    "No valid route to the destination IP was found in the routing table within the 100.65.255.0/24 range.\n"
+                    "This suggests that the device lacks a known path to the destination."
                 )
                 course_section = (
                     "Actions:\n"
-                    "  - Review the device's routing configuration and ensure correct routes are being advertised upstream.\n"
-                    "  - Verify that the destination IP is correct and required protocols are active."
+                    "  - Review the device's routing configuration and ensure that the correct routes are being advertised upstream.\n"
+                    "  - Verify that the destination IP is correct and that all required routing protocols are active."
                 )
         else:
             explanation_section = (
@@ -87,7 +88,6 @@ def generate_explanation(query, command, output, device_name="", baseline=None):
             "  - High uptime suggests stability; if uptime is low, investigate recent reboots or issues."
         )
     elif "ospf neighbor" in lower_query or "ospf neighbors" in lower_query:
-        # Parse neighbor IDs from the output (assuming the first field is the neighbor ID).
         lines = [line for line in output.splitlines() if line.strip()]
         actual_neighbors = [line.split()[0] for line in lines if line.split()]
         count = len(actual_neighbors)
@@ -112,7 +112,7 @@ def generate_explanation(query, command, output, device_name="", baseline=None):
         )
         course_section = (
             "Actions:\n"
-            "  - Examine the ping results. High packet loss or no replies indicate connectivity issues.\n"
+            "  - Examine the ping results; high packet loss or no replies indicate connectivity issues.\n"
             "  - Verify that the source IP is correct and reachable."
         )
     elif "traceroute" in lower_query:
@@ -125,7 +125,6 @@ def generate_explanation(query, command, output, device_name="", baseline=None):
             "  - Verify the source configuration and network path if problems are observed."
         )
     elif "bgp neighbor" in lower_query or "bgp neighbors" in lower_query:
-        # Parse neighbor IPs (assuming they start the line).
         lines = [line for line in output.splitlines() if line.strip() and re.match(r'\d+\.\d+\.\d+\.\d+', line)]
         actual_neighbors = [line.split()[0] for line in lines]
         count = len(actual_neighbors)
@@ -145,7 +144,6 @@ def generate_explanation(query, command, output, device_name="", baseline=None):
             "  - If any expected BGP session is missing, review BGP configurations and underlying connectivity."
         )
     elif "ldp neighbor" in lower_query or "ldp neighbors" in lower_query:
-        # Use regex to extract peer LDP Ident from output.
         actual_neighbors = re.findall(r'Peer LDP Ident:\s*([\d\.]+):', output)
         count = len(actual_neighbors)
         explanation_section = (
@@ -161,7 +159,7 @@ def generate_explanation(query, command, output, device_name="", baseline=None):
                 explanation_section += "All expected LDP sessions are established.\n"
         course_section = (
             "Actions:\n"
-            "  - If any expected LDP session is missing, verify LDP configuration and connectivity."
+            "  - If any expected LDP session is missing, verify LDP configurations and connectivity."
         )
     elif "ldp label binding" in lower_query or "ldp binding" in lower_query:
         explanation_section = (
@@ -173,7 +171,7 @@ def generate_explanation(query, command, output, device_name="", baseline=None):
             explanation_section += f" Baseline expects LDP bindings for: {', '.join(expected)}.\n"
         course_section = (
             "Actions:\n"
-            "  - Verify that the label binding exists and that the correct label is assigned.\n"
+            "  - Verify that the correct label is bound to the destination.\n"
             "  - If missing or incorrect, review LDP session status and device configuration."
         )
     else:
@@ -220,7 +218,6 @@ def generate_explanation_multi(query, device_results):
     return divider.join(explanations)
 
 if __name__ == "__main__":
-    # Example tests:
     sample_query_found = "can device p1 reach 1.1.1.1"
     sample_command_found = "show ip route 1.1.1.1"
     sample_output_found = (

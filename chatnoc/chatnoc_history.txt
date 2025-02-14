@@ -235,3 +235,9 @@
 
 # 2025-02-14 16:01:58.867498
 +can device p1 reach 100.65.255.14?
+
+# 2025-02-14 16:07:50.513684
++how many OSPF routes does P2 have?
+
+# 2025-02-14 16:08:00.432803
++how many BGP sessions does P1 have?

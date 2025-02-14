@@ -94,7 +94,7 @@ COMMAND_MAP = {
         "cisco_xr": "show mpls ldp neighbor",
         "huawei_vrp": "display mpls ldp neighbor",
         "nokia_sr": "show router mpls ldp neighbor"
-    },
+    }
 }
 
 def get_command(action, device_type, **kwargs):
@@ -102,14 +102,12 @@ def get_command(action, device_type, **kwargs):
     if mapping:
         cmd_template = mapping.get(device_type)
         if cmd_template:
-            # If cmd_template is a list, format each command.
             if isinstance(cmd_template, list):
                 cmds = []
                 for template in cmd_template:
                     try:
                         cmds.append(template.format(**kwargs))
                     except KeyError:
-                        # If a required parameter is missing, return None for this command.
                         return None
                 return cmds
             else:
@@ -120,7 +118,6 @@ def get_command(action, device_type, **kwargs):
     return None
 
 if __name__ == "__main__":
-    # Example tests:
     print("Ping (Cisco):", get_command("ping", "cisco", destination_ip="100.65.255.14", source_ip="100.65.255.1"))
     print("Traceroute (Nokia):", get_command("traceroute", "nokia_sr", destination_ip="100.65.255.14", source_ip="100.65.255.1"))
     print("Show Interfaces Down (Cisco):", get_command("show_interfaces_down", "cisco"))
