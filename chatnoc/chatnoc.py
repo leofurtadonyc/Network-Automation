@@ -16,11 +16,8 @@ from netmiko_executor import execute_command
 from llm_interface import get_llm
 
 # Import specialized explanation functions.
-from explanations.ospf_explanation import explain_ospf_neighbors
-from explanations.bgp_explanation import explain_bgp_neighbors
-from explanations.ldp_explanation import explain_ldp_neighbors, explain_ldp_label_binding
-from explanations.route_explanation import explain_route
-from explanations.general_explanation import explain_general
+# from explanations import *
+from explanations import explain_ospf_neighbors, explain_bgp_neighbors, explain_ldp_neighbors, explain_ldp_label_binding, explain_route, explain_general, explain_mpls_interfaces, explain_mpls_forwarding, explain_ospf_database, explain_ip_explicit_paths, explain_l2vpn_atom_vc, explain_mpls_traffic_eng, explain_version, explain_bgp_vpnv4_all, explain_bgp_vpnv4_vrf
 
 # Import health-check functions.
 from healthcheck import run_health_check_for_device, print_health_check_results
@@ -158,7 +155,7 @@ def get_explanation_function(action):
     """
     if action in ["show_ospf_neighbors_full", "ospf_neighbors"]:
         return explain_ospf_neighbors
-    elif action == "bgp_neighbors":
+    elif action in ["bgp_neighbors", "bgp_routes"]:
         return explain_bgp_neighbors
     elif action == "ldp_neighbors":
         return explain_ldp_neighbors
@@ -166,6 +163,35 @@ def get_explanation_function(action):
         return explain_ldp_label_binding
     elif action == "check_route":
         return explain_route
+    # New actions
+    elif action == "mpls_interfaces":
+        # If you create a specialized explanation file for this action, import and return it.
+        from explanations.mpls_interfaces_explanation import explain_mpls_interfaces
+        return explain_mpls_interfaces
+    elif action == "mpls_forwarding":
+        from explanations.mpls_forwarding_explanation import explain_mpls_forwarding
+        return explain_mpls_forwarding
+    elif action == "ospf_database":
+        from explanations.ospf_database_explanation import explain_ospf_database
+        return explain_ospf_database
+    elif action == "ip_explicit_paths":
+        from explanations.ip_explicit_paths_explanation import explain_ip_explicit_paths
+        return explain_ip_explicit_paths
+    elif action == "l2vpn_atom_vc":
+        from explanations.l2vpn_atom_vc_explanation import explain_l2vpn_atom_vc
+        return explain_l2vpn_atom_vc
+    elif action == "mpls_traffic_eng":
+        from explanations.mpls_traffic_eng_explanation import explain_mpls_traffic_eng
+        return explain_mpls_traffic_eng
+    elif action == "version_full":
+        from explanations.version_explanation import explain_version
+        return explain_version
+    elif action == "bgp_vpnv4_all":
+        from explanations.bgp_vpnv4_all_explanation import explain_bgp_vpnv4_all
+        return explain_bgp_vpnv4_all
+    elif action == "bgp_vpnv4_vrf":
+        from explanations.bgp_vpnv4_vrf_explanation import explain_bgp_vpnv4_vrf
+        return explain_bgp_vpnv4_vrf
     else:
         return explain_general
 
@@ -183,13 +209,15 @@ def parse_operator_query(query, llm):
     Possible actions include:
       show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route,
       show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors,
-      ldp_label_binding, ldp_neighbors, healthcheck.
+      ldp_label_binding, ldp_neighbors, healthcheck, bgp_routes, mpls_interfaces,
+      mpls_forwarding, ospf_database, ip_explicit_paths, l2vpn_atom_vc,
+      mpls_traffic_eng, version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.
     """
     prompt = (
         "You are an assistant that translates network operator queries into a JSON object in the following format:\n"
         '{ "action": <action>, "target_device": <device name or comma-separated list or "all">, "destination_ip": <optional>, "source_ip": <optional>, "mask": <optional> }\n'
         "Possible actions include: show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route, "
-        "show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, ldp_neighbors, healthcheck.\n\n"
+        "show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, ldp_neighbors, healthcheck, bgp_routes, mpls_interfaces, mpls_forwarding, ospf_database, ip_explicit_paths, l2vpn_atom_vc, mpls_traffic_eng, version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.\n\n"
         f"Query: {query}\n\n"
         "JSON:"
     )
@@ -236,10 +264,15 @@ def main_cli():
     
     # Define actions that do not require a destination IP.
     actions_no_dest_required = ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]
-    # List of device-specific actions.
-    device_actions = ["show_interfaces_down", "get_mgmt_ip", "show_ospf_routes_count",
-                      "check_route", "show_uptime", "show_ospf_neighbors_full",
-                      "ping", "traceroute", "bgp_neighbors", "ldp_label_binding", "ldp_neighbors", "healthcheck"]
+    # List of device-specific actions (healthcheck is handled separately).
+    device_actions = [
+        "show_interfaces_down", "get_mgmt_ip", "show_ospf_routes_count",
+        "check_route", "show_uptime", "show_ospf_neighbors_full",
+        "ping", "traceroute", "bgp_neighbors", "ldp_label_binding",
+        "ldp_neighbors", "bgp_routes", "mpls_interfaces", "mpls_forwarding",
+        "ospf_database", "ip_explicit_paths", "l2vpn_atom_vc", "mpls_traffic_eng",
+        "version_full", "bgp_vpnv4_all", "bgp_vpnv4_vrf"
+    ]
     
     while True:
         try:
@@ -263,7 +296,8 @@ def main_cli():
                 general_mode = True
                 demo_mode = False
                 print("\nGeneral mode enabled. In general mode, device-specific commands will NOT be executed.")
-                print("You can ask open-ended networking questions. Use 'exit general' to return to normal mode.\n")
+                print("You can ask open-ended networking questions. For a list of approved topics, type 'approved topics'.")
+                print("Use 'exit general' to return to normal mode.\n")
                 continue
             if demo_mode and query.strip().lower() == "exit demo":
                 demo_mode = False
@@ -273,7 +307,7 @@ def main_cli():
                 general_mode = False
                 print("\nExiting general mode. Now operating in normal mode.\n")
                 continue
-            # In normal mode, exit or quit terminates the program.
+            # In normal mode, 'exit' or 'quit' terminates the program.
             if not demo_mode and not general_mode and query.strip().lower() in ["exit", "quit"]:
                 print("Goodbye!")
                 break
@@ -283,7 +317,6 @@ def main_cli():
 
             # If in general mode, process as a general networking query.
             if general_mode:
-                # If user asks "approved topics", show them.
                 if query.strip().lower() in ["approved topics", "list approved topics"]:
                     topics = load_approved_topics()
                     if topics:

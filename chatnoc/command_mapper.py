@@ -94,7 +94,80 @@ COMMAND_MAP = {
         "cisco_xr": "show mpls ldp neighbor",
         "huawei_vrp": "display mpls ldp neighbor",
         "nokia_sr": "show router mpls ldp neighbor"
-    }
+    },
+    # New actions for additional commands.
+    "mpls_interfaces": {
+        "cisco": "show mpls interfaces",
+        "cisco_xe": "show mpls interfaces",
+        "juniper_junos": "show mpls interfaces",  # Adjust as needed for Juniper.
+        "cisco_xr": "show mpls interfaces",
+        "huawei_vrp": "display mpls interface",
+        "nokia_sr": "show router mpls interface"
+    },
+    "mpls_forwarding": {
+        "cisco": "show mpls forwarding-table",
+        "cisco_xe": "show mpls forwarding-table",
+        "juniper_junos": "show mpls forwarding-table",  # Adjust if needed.
+        "cisco_xr": "show mpls forwarding-table",
+        "huawei_vrp": "display mpls ldp binding",  # May differ.
+        "nokia_sr": "show router mpls forwarding-table"
+    },
+    "ospf_database": {
+        "cisco": "show ip ospf database",
+        "cisco_xe": "show ip ospf database",
+        "juniper_junos": "show ospf database",
+        "cisco_xr": "show ip ospf database",
+        "huawei_vrp": "display ospf database",
+        "nokia_sr": "show router ospf database"
+    },
+    "ip_explicit_paths": {
+        "cisco": "show ip explicit-paths",
+        "cisco_xe": "show ip explicit-paths",
+        "juniper_junos": "show route explicit-paths",  # Example adjustment.
+        "cisco_xr": "show ip explicit-paths",
+        "huawei_vrp": "display ip explicit-paths",
+        "nokia_sr": "show router explicit-paths"
+    },
+    "l2vpn_atom_vc": {
+        "cisco": "show l2vpn atom vc",
+        "cisco_xe": "show l2vpn atom vc",
+        "juniper_junos": "show l2vpn atom vc",  # Adjust if necessary.
+        "cisco_xr": "show l2vpn atom vc",
+        "huawei_vrp": "display l2vpn atom vc",
+        "nokia_sr": "show router l2vpn atom vc"
+    },
+    "mpls_traffic_eng": {
+        "cisco": "show mpls traffic-eng tunnels",
+        "cisco_xe": "show mpls traffic-eng tunnels",
+        "juniper_junos": "show mpls traffic-eng tunnels",  # Adjust if necessary.
+        "cisco_xr": "show mpls traffic-eng tunnels",
+        "huawei_vrp": "display mpls traffic-eng tunnels",
+        "nokia_sr": "show router mpls traffic-eng tunnels"
+    },
+    "version_full": {
+        "cisco": "show version",
+        "cisco_xe": "show version",
+        "juniper_junos": "show version",
+        "cisco_xr": "show version",
+        "huawei_vrp": "display version",
+        "nokia_sr": "show version"
+    },
+    "bgp_vpnv4_all": {
+        "cisco": "show bgp vpnv4 unicast all",
+        "cisco_xe": "show bgp vpnv4 unicast all",
+        "juniper_junos": "show bgp vpnv4 unicast",  # Adjust as needed.
+        "cisco_xr": "show bgp vpnv4 unicast all",
+        "huawei_vrp": "display bgp vpnv4 unicast all",
+        "nokia_sr": "show router bgp vpnv4 unicast all"
+    },
+    "bgp_vpnv4_vrf": {
+        "cisco": "show bgp vpnv4 unicast vrf",
+        "cisco_xe": "show bgp vpnv4 unicast vrf",
+        "juniper_junos": "show bgp vpnv4 unicast vrf",  # Adjust as needed.
+        "cisco_xr": "show bgp vpnv4 unicast vrf",
+        "huawei_vrp": "display bgp vpnv4 unicast vrf",
+        "nokia_sr": "show router bgp vpnv4 unicast vrf"
+    },
 }
 
 def get_command(action, device_type, **kwargs):
@@ -122,3 +195,5 @@ if __name__ == "__main__":
     print("Traceroute (Nokia):", get_command("traceroute", "nokia_sr", destination_ip="100.65.255.14", source_ip="100.65.255.1"))
     print("Show Interfaces Down (Cisco):", get_command("show_interfaces_down", "cisco"))
     print("LDP Label Binding (Cisco XE):", get_command("ldp_label_binding", "cisco_xe", destination_ip="100.65.255.14", mask="32"))
+    print("MPLS Interfaces (Cisco):", get_command("mpls_interfaces", "cisco"))
+    print("MPLS Traffic Eng (Cisco):", get_command("mpls_traffic_eng", "cisco"))
