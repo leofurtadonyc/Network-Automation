@@ -1,6 +1,8 @@
 # netmiko_executor.py
+import os
+import yaml
 from netmiko import ConnectHandler
-from auth_manager import get_credentials as load_credentials
+from auth_manager import get_credentials
 
 # Mapping from our device_type names to Netmiko device types
 DEVICE_TYPE_MAPPING = {
@@ -12,38 +14,49 @@ DEVICE_TYPE_MAPPING = {
     "nokia_sr": "nokia_sros"
 }
 
-# Global variable to cache credentials.
-CREDENTIALS = None
-
-def get_cached_credentials():
+def get_config():
     """
-    Retrieve credentials from auth_manager and cache them for subsequent calls.
+    Load the configuration from config.yaml.
     """
-    global CREDENTIALS
-    if CREDENTIALS is None:
+    config_path = "config.yaml"
+    if os.path.isfile(config_path):
         try:
-            CREDENTIALS = load_credentials()
+            with open(config_path, "r") as f:
+                config = yaml.safe_load(f)
+            return config
         except Exception as e:
-            raise Exception(f"Authentication error: {e}")
-    return CREDENTIALS
+            print(f"Error loading config file: {e}")
+            return {}
+    else:
+        return {}
 
 def execute_command(device, command):
     netmiko_device_type = DEVICE_TYPE_MAPPING.get(device.device_type)
     if not netmiko_device_type:
         return f"Unsupported device type: {device.device_type} for device {device.name}"
     
-    # Retrieve cached credentials.
+    # Retrieve credentials.
     try:
-        username, password = get_cached_credentials()
+        username, password = get_credentials()
     except Exception as e:
-        return str(e)
+        return f"Authentication error: {e}"
 
+    # Load configuration to get SSH port.
+    config = get_config()
+    ssh_port = config.get("ssh_port", 22)
+    
     device_params = {
         "device_type": netmiko_device_type,
         "host": device.mgmt_address,
         "username": username,
         "password": password,
+        "port": ssh_port,
+        # Remove 'look_for_keys' since it's causing the error.
     }
+    
+    if device.device_type == "cisco_xr":
+        device_params["banner_timeout"] = 200
+        device_params["auth_timeout"] = 200
     
     try:
         connection = ConnectHandler(**device_params)
