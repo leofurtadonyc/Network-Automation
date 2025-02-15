@@ -200,24 +200,31 @@ def parse_operator_query(query, llm):
     Translate the operator query into a JSON object.
     Expected JSON format:
       {
-        "action": <action>,
-        "target_device": <device name or comma-separated list or "all">,
-        "destination_ip": <optional>,
-        "source_ip": <optional>,
+        "action": <action>, 
+        "target_device": <device name or comma-separated list or "all">, 
+        "destination_ip": <optional>, 
+        "source_ip": <optional>, 
         "mask": <optional>
       }
-    Possible actions include:
-      show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route,
-      show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors,
-      ldp_label_binding, ldp_neighbors, healthcheck, bgp_routes, mpls_interfaces,
-      mpls_forwarding, ospf_database, ip_explicit_paths, l2vpn_atom_vc,
-      mpls_traffic_eng, version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.
+    You only support queries related to computer networking, your networks, and your customers.
+    If the query is not about networking, return:
+      { "action": "unsupported" }
+    
+    Possible actions include: show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route,
+      show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, ldp_neighbors, healthcheck, 
+      bgp_routes, mpls_interfaces, mpls_forwarding, ospf_database, ip_explicit_paths, l2vpn_atom_vc, mpls_traffic_eng,
+      version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.
     """
     prompt = (
         "You are an assistant that translates network operator queries into a JSON object in the following format:\n"
-        '{ "action": <action>, "target_device": <device name or comma-separated list or "all">, "destination_ip": <optional>, "source_ip": <optional>, "mask": <optional> }\n'
+        '{ "action": <action>, "target_device": <device name or comma-separated list or "all">, '
+        '"destination_ip": <optional>, "source_ip": <optional>, "mask": <optional> }\n'
+        "You only support queries related to computer networking, your networks, and your customers. "
+        "If the query is not about these topics, return { \"action\": \"unsupported\" }.\n"
         "Possible actions include: show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route, "
-        "show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, ldp_neighbors, healthcheck, bgp_routes, mpls_interfaces, mpls_forwarding, ospf_database, ip_explicit_paths, l2vpn_atom_vc, mpls_traffic_eng, version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.\n\n"
+        "show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, ldp_neighbors, healthcheck, "
+        "bgp_routes, mpls_interfaces, mpls_forwarding, ospf_database, ip_explicit_paths, l2vpn_atom_vc, mpls_traffic_eng, "
+        "version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.\n\n"
         f"Query: {query}\n\n"
         "JSON:"
     )
@@ -339,6 +346,11 @@ def main_cli():
             action = intent.get("action").lower()
             normalized_action = action.replace("-", "").replace(" ", "")
             target_device_str = intent.get("target_device", "")
+
+            if action == "unsupported":
+                print("Sorry, I can only provide support for computer networking, your networks, and your customers. "
+                      "Please rephrase your question to focus on networking topics.\nFor a list of approved topics, type 'approved topics'.")
+                continue
 
             # Healthcheck branch.
             if normalized_action == "healthcheck":
