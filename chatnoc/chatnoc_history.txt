@@ -25,3 +25,9 @@
 
 # 2025-02-14 22:03:50.835796
 +Check for LDP binding of prefix 100.65.255.13 32 on device P2
+
+# 2025-02-15 23:28:36.340920
++help
+
+# 2025-02-15 23:29:21.269441
++can device p1 ping 100.65.255.14 using its loopback0 as a source?
