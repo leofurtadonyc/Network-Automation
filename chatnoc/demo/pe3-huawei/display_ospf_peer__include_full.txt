@@ -1,0 +1,41 @@
+<PE3-Huawei>display ospf peer 
+
+(M) Indicates MADJ neighbor
+
+
+          OSPF Process 1 with Router ID 100.65.255.13
+                Neighbors
+
+ Area 0.0.0.0 interface 100.65.0.58 (Eth1/0/0)'s neighbors
+ Router ID: 100.65.255.7         Address: 100.65.0.57      
+   State: Full           Mode:Nbr is Slave      Priority: 1
+   DR: None              BDR: None              MTU: 1500
+   Dead timer due in  34  sec
+   Retrans timer interval: 5
+   Neighbor is up for 15h26m48s
+   Neighbor Up Time : 2025-02-14 14:34:03
+   Authentication Sequence: [ 0 ]
+
+ Area 0.0.0.0 interface 100.65.0.62 (Eth1/0/2)'s neighbors
+ Router ID: 100.65.255.8         Address: 100.65.0.61      
+   State: Full           Mode:Nbr is Slave      Priority: 1
+   DR: None              BDR: None              MTU: 1500
+   Dead timer due in  37  sec
+   Retrans timer interval: 5
+   Neighbor is up for 15h26m48s
+   Neighbor Up Time : 2025-02-14 14:34:04
+   Authentication Sequence: [ 0 ]
+
+
+          OSPF Process 65001 with Router ID 172.16.0.6
+                Neighbors
+
+ Area 0.0.0.0 interface 172.16.0.6 (Eth1/0/3)'s neighbors
+ Router ID: 172.16.2.1           Address: 172.16.0.5       
+   State: Full           Mode:Nbr is Master     Priority: 1
+   DR: None              BDR: None              MTU: 1500
+   Dead timer due in  38  sec
+   Retrans timer interval: 5
+   Neighbor is up for 15h26m56s
+   Neighbor Up Time : 2025-02-14 14:33:56
+   Authentication Sequence: [ 0 ]
