@@ -254,7 +254,7 @@ def main_cli():
     mode_prompt = lambda: "demo-mode > " if demo_mode else ("general-mode > " if general_mode else "ChatNOC > ")
     banner = pyfiglet.figlet_format("ChatNOC")
     print(banner)
-    print("Welcome to ChatNOC interactive shell.")
+    print("Welcome to ChatNOC interactive shell by Leonardo Furtado - https://github.com/leofurtadonyc/Network-Automation\n")
     print("Type 'help' for usage instructions.")
     print("Type 'history' to display the last 50 queries.")
     print("Type 'demo' to enter demo mode (dry-run with pre-saved outputs).")

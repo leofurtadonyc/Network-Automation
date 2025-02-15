@@ -1,11 +1,61 @@
 # devices.yaml
 p1:
-  device_role: "access"
+  device_role: "p-router"
   device_type: "cisco_xe"
   mgmt_address: "192.168.255.1"
   loopback_address: "100.65.255.1"
 p2:
-  device_role: "access"
+  device_role: "p-router"
   device_type: "cisco_xe"
   mgmt_address: "192.168.255.2"
   loopback_address: "100.65.255.2"
+p3:
+  device_role: "p-router"
+  device_type: "cisco_xe"
+  mgmt_address: "192.168.255.3"
+  loopback_address: "100.65.255.3"
+p4:
+  device_role: "p-router"
+  device_type: "cisco_xe"
+  mgmt_address: "192.168.255.4"
+  loopback_address: "100.65.255.4"
+p5:
+  device_role: "p-router"
+  device_type: "cisco_xe"
+  mgmt_address: "192.168.255.5"
+  loopback_address: "100.65.255.5"
+p6:
+  device_role: "p-router"
+  device_type: "cisco_xe"
+  mgmt_address: "192.168.255.6"
+  loopback_address: "100.65.255.6"
+p7:
+  device_role: "p-router"
+  device_type: "cisco_xe"
+  mgmt_address: "192.168.255.7"
+  loopback_address: "100.65.255.7"
+p8:
+  device_role: "p-router"
+  device_type: "cisco_xe"
+  mgmt_address: "192.168.255.8"
+  loopback_address: "100.65.255.8"
+pe1-junos:
+  device_role: "pe-router"
+  device_type: "juniper_junos"
+  mgmt_address: "192.168.255.11"
+  loopback_address: "100.65.255.11"
+pe2-iosxr:
+  device_role: "pe-router"
+  device_type: "cisco_xr"
+  mgmt_address: "192.168.255.12"
+  loopback_address: "100.65.255.12"
+pe3-huawei:
+  device_role: "pe-router"
+  device_type: "huawei_vrp"
+  mgmt_address: "192.168.255.13"
+  loopback_address: "100.65.255.13"
+pe4-nokia:
+  device_role: "pe-router"
+  device_type: "nokia_sr"
+  mgmt_address: "192.168.255.14"
+  loopback_address: "100.65.255.14"

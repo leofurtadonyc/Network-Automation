@@ -6,7 +6,7 @@ ollama:
 # authentication:
 #   type: "plain-text"   # Options: "plain-text" or "secure"
 #   username: "operador"
-#   password: "senha"
+#   password: "Operador"
 
 authentication:
   type: "secure"       # Use secure authentication
