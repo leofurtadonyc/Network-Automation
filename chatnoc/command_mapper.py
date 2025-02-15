@@ -12,32 +12,32 @@ COMMAND_MAP = {
         ],
         "juniper_junos": "show interfaces terse | match down",
         "cisco_xr": "show interfaces brief | include down",
-        "huawei_vrp": "display interface | include down",
-        "nokia_sr": "show router interface brief | include down"
+        "huawei_vrp": "display interface brief | include down",
+        "nokia_sr": 'show router interface | match "Down/Down"'
     },
     "get_mgmt_ip": {
-        "cisco": "show ip interface brief | include Management",
-        "cisco_xe": "show ip interface brief | include Management",
-        "juniper_junos": "show interfaces terse | match mgmt",
-        "cisco_xr": "show interfaces brief | include Management",
-        "huawei_vrp": "display interface | include Management",
-        "nokia_sr": "show router interface brief | include Management"
+        "cisco": "show ip vrf | include MGMT",
+        "cisco_xe": "show ip vrf | include MGMT",
+        "juniper_junos": "show interfaces terse | match fxp",
+        "cisco_xr": "show ipv4 int mgmtEth 0/RP0/CPU0/0",
+        "huawei_vrp": "display ip vpn-instance",
+        "nokia_sr": "show router interface if-oob"
     },
     "show_ospf_routes_count": {
         "cisco": "show ip route ospf",
         "cisco_xe": "show ip route ospf",
         "juniper_junos": "show route protocol ospf",
         "cisco_xr": "show route ospf",
-        "huawei_vrp": "display ospf routing-table",
-        "nokia_sr": "show router ospf route"
+        "huawei_vrp": "display ip routing-table protocol ospf",
+        "nokia_sr": "show router route-table protocol ospf"
     },
     "check_route": {
         "cisco": "show ip route {destination_ip}",
         "cisco_xe": "show ip route {destination_ip}",
         "juniper_junos": "show route {destination_ip}",
         "cisco_xr": "show route {destination_ip}",
-        "huawei_vrp": "display ip routing-table | include {destination_ip}",
-        "nokia_sr": "show router route {destination_ip}"
+        "huawei_vrp": "display ip routing-table {destination_ip}",
+        "nokia_sr": "show router route-table {destination_ip}"
     },
     "show_uptime": {
         "cisco": "show version | include uptime",
@@ -45,22 +45,22 @@ COMMAND_MAP = {
         "juniper_junos": "show system uptime",
         "cisco_xr": "show version | include uptime",
         "huawei_vrp": "display version | include uptime",
-        "nokia_sr": "show system uptime"
+        "nokia_sr": 'show system information | match "System Up Time"'
     },
     "show_ospf_neighbors_full": {
         "cisco": "show ip ospf neighbor | include FULL",
         "cisco_xe": "show ip ospf neighbor | include FULL",
         "juniper_junos": "show ospf neighbor | match FULL",
-        "cisco_xr": "show ip ospf neighbor | include FULL",
+        "cisco_xr": "show ospf neighbor | include FULL",
         "huawei_vrp": "display ospf peer | include FULL",
-        "nokia_sr": "show router ospf neighbor | include FULL"
+        "nokia_sr": "show router ospf neighbor | match Full"
     },
     "ping": {
         "cisco": "ping {destination_ip} source {source_ip}",
         "cisco_xe": "ping {destination_ip} source {source_ip}",
         "juniper_junos": "ping {destination_ip} source {source_ip}",
         "cisco_xr": "ping {destination_ip} source {source_ip}",
-        "huawei_vrp": "ping {destination_ip} source {source_ip}",
+        "huawei_vrp": "ping -a {source_ip} {destination_ip}",
         "nokia_sr": "ping source {source_ip} {destination_ip}"
     },
     "traceroute": {
@@ -68,38 +68,37 @@ COMMAND_MAP = {
         "cisco_xe": "traceroute {destination_ip} source {source_ip}",
         "juniper_junos": "traceroute {destination_ip} source {source_ip}",
         "cisco_xr": "traceroute {destination_ip} source {source_ip}",
-        "huawei_vrp": "traceroute {destination_ip} source {source_ip}",
+        "huawei_vrp": "tracert -a {source_ip} {destination_ip}",
         "nokia_sr": "traceroute source {source_ip} {destination_ip}"
     },
     "bgp_neighbors": {
         "cisco": "show ip bgp summary",
         "cisco_xe": "show ip bgp summary",
-        "juniper_junos": "show bgp neighbor",
-        "cisco_xr": "show ip bgp summary",
+        "juniper_junos": "show bgp summary",
+        "cisco_xr": "show bgp summary",
         "huawei_vrp": "display bgp peer",
         "nokia_sr": "show router bgp summary"
     },
     "ldp_label_binding": {
         "cisco": "show mpls ldp binding | include {destination_ip}",
         "cisco_xe": "show mpls ldp bindings {destination_ip} {mask}",
-        "juniper_junos": "show mpls ldp binding | match {destination_ip}",
+        "juniper_junos": "show ldp database | match {destination_ip}",
         "cisco_xr": "show mpls ldp binding | include {destination_ip}",
-        "huawei_vrp": "display mpls ldp binding | include {destination_ip}",
-        "nokia_sr": "show router mpls ldp binding | include {destination_ip}"
+        "huawei_vrp": "display mpls ldp lsp | include {destination_ip}",
+        "nokia_sr": "show router ldp bindings | match {destination_ip}"
     },
     "ldp_neighbors": {
         "cisco": "show mpls ldp neighbor",
         "cisco_xe": "show mpls ldp neighbor",
-        "juniper_junos": "show mpls ldp neighbor",
+        "juniper_junos": "show ldp neighbor",
         "cisco_xr": "show mpls ldp neighbor",
-        "huawei_vrp": "display mpls ldp neighbor",
-        "nokia_sr": "show router mpls ldp neighbor"
+        "huawei_vrp": "display mpls ldp peer",
+        "nokia_sr": "show router ldp session"
     },
-    # New actions for additional commands.
     "mpls_interfaces": {
         "cisco": "show mpls interfaces",
         "cisco_xe": "show mpls interfaces",
-        "juniper_junos": "show mpls interfaces",  # Adjust as needed for Juniper.
+        "juniper_junos": "show mpls interface",
         "cisco_xr": "show mpls interfaces",
         "huawei_vrp": "display mpls interface",
         "nokia_sr": "show router mpls interface"
@@ -107,42 +106,42 @@ COMMAND_MAP = {
     "mpls_forwarding": {
         "cisco": "show mpls forwarding-table",
         "cisco_xe": "show mpls forwarding-table",
-        "juniper_junos": "show mpls forwarding-table",  # Adjust if needed.
-        "cisco_xr": "show mpls forwarding-table",
-        "huawei_vrp": "display mpls ldp binding",  # May differ.
-        "nokia_sr": "show router mpls forwarding-table"
+        "juniper_junos": "show route table mpls.0",
+        "cisco_xr": "show mpls forwarding",
+        "huawei_vrp": "display mpls ldp lsp",
+        "nokia_sr": "show router ldp bindings active"
     },
     "ospf_database": {
         "cisco": "show ip ospf database",
         "cisco_xe": "show ip ospf database",
         "juniper_junos": "show ospf database",
-        "cisco_xr": "show ip ospf database",
-        "huawei_vrp": "display ospf database",
+        "cisco_xr": "show ospf database",
+        "huawei_vrp": "display ospf lsdb",
         "nokia_sr": "show router ospf database"
     },
     "ip_explicit_paths": {
         "cisco": "show ip explicit-paths",
         "cisco_xe": "show ip explicit-paths",
-        "juniper_junos": "show route explicit-paths",  # Example adjustment.
-        "cisco_xr": "show ip explicit-paths",
-        "huawei_vrp": "display ip explicit-paths",
-        "nokia_sr": "show router explicit-paths"
+        "juniper_junos": "show mpls path",
+        "cisco_xr": "show explicit-paths",
+        "huawei_vrp": "display explicit-path",
+        "nokia_sr": "show router mpls path"
     },
     "l2vpn_atom_vc": {
         "cisco": "show l2vpn atom vc",
         "cisco_xe": "show l2vpn atom vc",
-        "juniper_junos": "show l2vpn atom vc",  # Adjust if necessary.
-        "cisco_xr": "show l2vpn atom vc",
-        "huawei_vrp": "display l2vpn atom vc",
-        "nokia_sr": "show router l2vpn atom vc"
+        "juniper_junos": "show vpls connections summary",
+        "cisco_xr": "show l2vpn bridge-domain brief",
+        "huawei_vrp": "display mpls l2vc",
+        "nokia_sr": "show service service-name-using | match Epipe"
     },
     "mpls_traffic_eng": {
         "cisco": "show mpls traffic-eng tunnels",
         "cisco_xe": "show mpls traffic-eng tunnels",
-        "juniper_junos": "show mpls traffic-eng tunnels",  # Adjust if necessary.
+        "juniper_junos": "show mpls lsp",
         "cisco_xr": "show mpls traffic-eng tunnels",
-        "huawei_vrp": "display mpls traffic-eng tunnels",
-        "nokia_sr": "show router mpls traffic-eng tunnels"
+        "huawei_vrp": "display mpls te tunnel",
+        "nokia_sr": "show router mpls lsp"
     },
     "version_full": {
         "cisco": "show version",
@@ -155,18 +154,18 @@ COMMAND_MAP = {
     "bgp_vpnv4_all": {
         "cisco": "show bgp vpnv4 unicast all",
         "cisco_xe": "show bgp vpnv4 unicast all",
-        "juniper_junos": "show bgp vpnv4 unicast",  # Adjust as needed.
+        "juniper_junos": "show route table bgp.l3vpn.0",
         "cisco_xr": "show bgp vpnv4 unicast all",
-        "huawei_vrp": "display bgp vpnv4 unicast all",
-        "nokia_sr": "show router bgp vpnv4 unicast all"
+        "huawei_vrp": "display bgp vpnv4 all routing-table",
+        "nokia_sr": "show router bgp routes vpn-ipv4"
     },
     "bgp_vpnv4_vrf": {
         "cisco": "show bgp vpnv4 unicast vrf",
         "cisco_xe": "show bgp vpnv4 unicast vrf",
-        "juniper_junos": "show bgp vpnv4 unicast vrf",  # Adjust as needed.
+        "juniper_junos": "show route table",
         "cisco_xr": "show bgp vpnv4 unicast vrf",
-        "huawei_vrp": "display bgp vpnv4 unicast vrf",
-        "nokia_sr": "show router bgp vpnv4 unicast vrf"
+        "huawei_vrp": "display bgp vpnv4 vpn-instance",
+        "nokia_sr": "show router bgp routes vpn-ipv4"
     },
 }
 
