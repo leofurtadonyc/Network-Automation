@@ -1,6 +1,7 @@
 approved_topics:
 - 802.1x
 - 802.1q
+- 802.11ax
 - Ansible
 - API-driven Networking
 - Application Aware Networking
@@ -14,7 +15,7 @@ approved_topics:
 - Cloud Networking
 - Cloud SD-WAN
 - Cloud-based Network Management
-- CMP (Cloud Management Platforms)
+- CMP
 - Cumulus Linux
 - Data Center Automation
 - Data Center Fabric
@@ -25,6 +26,7 @@ approved_topics:
 - DDoS Mitigation
 - DMVPN
 - DPDK
+- DWDM
 - Edge Computing
 - Edge Network Security
 - Ethernet
@@ -50,6 +52,7 @@ approved_topics:
 - IPv6
 - iSCSI
 - ISIS
+- IS-IS
 - IT Automation
 - Juniper Junos
 - Kafka
@@ -62,8 +65,8 @@ approved_topics:
 - LLDP
 - LDP
 - MACsec
-- MAN (Metropolitan Area Network)
-- MEF (Metro Ethernet Forum)
+- MAN
+- MEF
 - Metro Ethernet
 - MPLS
 - MPLS TE
@@ -71,7 +74,7 @@ approved_topics:
 - Network Analytics
 - Network Automation
 - Network Behavior Analysis
-- Network Function Virtualization (NFV)
+- Network Function Virtualization
 - Network Orchestration
 - Network Performance Monitoring
 - Network Policy
@@ -82,7 +85,7 @@ approved_topics:
 - NetConf
 - NetFlow
 - NFV
-- NaaS (Network as a Service)
+- NaaS
 - Open API
 - OpenConfig
 - OpenDaylight
@@ -101,21 +104,21 @@ approved_topics:
 - Policy-Based Routing
 - Port Channeling
 - Programmable Data Planes
-- QoS (Quality of Service)
-- Quality of Experience (QoE)
+- QoS
+- Quality of Experience
 - REST API
 - RESTCONF
-- RMON (Remote Monitoring)
+- RMON
 - SD-Access
 - SD-WAN
-- SDN (Software-Defined Networking)
+- SDN
 - Segmentation Routing
 - Security Automation
 - Service Chaining
 - Service Provider SDN
 - Service Virtualization
 - SLA Monitoring
-- SONiC (Software for Open Networking in the Cloud)
+- SONiC
 - SPINE-LEAF Architecture
 - Stateful Firewalling
 - Storage Networking
@@ -127,7 +130,7 @@ approved_topics:
 - UDP
 - Unified Communications Networking
 - Uptime Monitoring
-- Virtual Extensible LAN (VXLAN)
+- Virtual Extensible LAN
 - Virtual LAN Management
 - Virtualized Network Functions
 - Virtual Switching
@@ -135,20 +138,20 @@ approved_topics:
 - VPLS
 - VPP
 - VPWS
-- Virtual Private Network (VPN)
+- Virtual Private Network
 - Virtualization in Networking
 - WAN Convergence
 - WAN Optimization
 - WAN Technologies
 - Web-Scale Networking
-- Wi-Fi 6 (802.11ax)
+- Wi-Fi 6
 - Wireless LAN
 - Wireless Mesh Networking
-- WDM (Wavelength Division Multiplexing)
+- WDM
 - XMPP in Networking
 - Yang
 - Zero Trust Networking
-- ZTP (Zero Touch Provisioning)
+- ZTP
 - Zero Configuration Networking
 - Zero Downtime Networking
 - Zero Packet Loss Networking

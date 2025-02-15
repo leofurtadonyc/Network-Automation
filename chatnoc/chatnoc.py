@@ -109,15 +109,12 @@ def process_general_query(query, llm):
     """
     Handle open-ended networking questions.
     Loads approved topics from baseline/index.yaml and uses the LLM to generate an explanation
-    if the query includes an approved topic; otherwise, it instructs the user to rephrase.
+    if the query includes an approved topic; otherwise, instructs the user to rephrase.
     Also handles profanity with a humorous response.
     """
     approved_topics = load_approved_topics()
-    # Check for profanity.
     if contains_profanity(query):
         return "I'm here to help with networking, but please keep it professional. Let's stick to the tech talk!"
-
-    # Check if the query mentions at least one approved topic.
     if contains_approved_topic(query, approved_topics):
         prompt = f"Explain the following network technology topic in detail: {query}"
         try:
@@ -137,6 +134,23 @@ def display_help():
             print(f.read())
     else:
         print("No help file found.")
+
+def display_history():
+    history_file = "chatnoc_history.txt"
+    if os.path.isfile(history_file):
+        with open(history_file, "r") as f:
+            lines = f.read().splitlines()
+        # Filter out lines that are blank or that start with a '#' (timestamps).
+        filtered = [line for line in lines if line.strip() and not line.startswith("#")]
+        # Remove the leading '+' from query lines if present.
+        queries = [line.lstrip("+").strip() for line in filtered]
+        # Get the last 50 queries.
+        last_50 = queries[-50:] if len(queries) >= 50 else queries
+        print("\nLast 50 queries:")
+        for idx, line in enumerate(last_50, start=1):
+            print(f"{idx}. {line}")
+    else:
+        print("No history file found.")
 
 def get_explanation_function(action):
     """
@@ -207,6 +221,7 @@ def main_cli():
     print(banner)
     print("Welcome to ChatNOC interactive shell.")
     print("Type 'help' for usage instructions.")
+    print("Type 'history' to display the last 50 queries.")
     print("Type 'demo' to enter demo mode (dry-run with pre-saved outputs).")
     print("Type 'general' to enter general mode for open-ended networking topics.")
     print("In demo or general mode, type 'exit demo' or 'exit general' to return to normal mode.")
@@ -229,9 +244,13 @@ def main_cli():
     while True:
         try:
             query = session.prompt(mode_prompt())
-            # Help command.
+            # Handle help command.
             if query.strip().lower() == "help":
                 display_help()
+                continue
+            # History command.
+            if query.strip().lower() == "history":
+                display_history()
                 continue
             # Mode switching commands.
             if query.strip().lower() == "demo":
@@ -254,31 +273,6 @@ def main_cli():
                 general_mode = False
                 print("\nExiting general mode. Now operating in normal mode.\n")
                 continue
-            # In normal mode, 'exit' terminates the program.
-            if not demo_mode and not general_mode and query.strip().lower() in ["exit", "quit"]:
-                print("Goodbye!")
-                break
-            if not query.strip():
-                print(random.choice(funny_lines))
-                continue
-
-            # Check if user wants to see approved topics.
-            if general_mode and query.strip().lower() in ["approved topics", "list approved topics"]:
-                topics = load_approved_topics()
-                if topics:
-                    print("\nApproved Topics:")
-                    for topic in topics:
-                        print(f"  - {topic}")
-                else:
-                    print("No approved topics found.")
-                continue
-
-            # If in general mode, process as a general networking query.
-            if general_mode:
-                result = process_general_query(query, llm)
-                print("\n" + result)
-                continue
-
             # In normal mode, exit or quit terminates the program.
             if not demo_mode and not general_mode and query.strip().lower() in ["exit", "quit"]:
                 print("Goodbye!")
@@ -287,8 +281,23 @@ def main_cli():
                 print(random.choice(funny_lines))
                 continue
 
-            # First, check if the query is a general networking topic (if not device-specific).
-            # Normalize the action and target.
+            # If in general mode, process as a general networking query.
+            if general_mode:
+                # If user asks "approved topics", show them.
+                if query.strip().lower() in ["approved topics", "list approved topics"]:
+                    topics = load_approved_topics()
+                    if topics:
+                        print("\nApproved Topics:")
+                        for topic in topics:
+                            print(f"  - {topic}")
+                    else:
+                        print("No approved topics found.")
+                    continue
+                result = process_general_query(query, llm)
+                print("\n" + result)
+                continue
+
+            # Process device-specific queries.
             intent = parse_operator_query(query, llm)
             if not intent or not intent.get("action"):
                 print("Could not parse the query correctly. Please try again.")
@@ -300,11 +309,9 @@ def main_cli():
 
             # Healthcheck branch.
             if normalized_action == "healthcheck":
-                # If target is "all", then run healthchecks on all devices.
                 if target_device_str.strip().lower() == "all":
-                    devices_to_check = inventory.get_all_devices()  # Ensure your inventory class provides this method.
+                    devices_to_check = inventory.get_all_devices()  # Make sure this method exists.
                 else:
-                    # Support comma-separated list as well.
                     if any(sep in target_device_str.lower() for sep in [",", " and "]):
                         device_names = [name.strip() for name in re.split(r',|\band\b', target_device_str, flags=re.IGNORECASE)]
                     else:
@@ -332,8 +339,7 @@ def main_cli():
                     if not baseline_for_device:
                         print(f"No baseline defined for device '{device.name}'. Skipping health check for this device.")
                         continue
-
-                    # Optionally, you may first check connectivity (as shown previously).
+                    # Check connectivity before running healthcheck.
                     print(f"Checking connectivity on {device.name}...")
                     connectivity_output = execute_command(device, "show version")
                     if "Failed to execute command" in connectivity_output:
@@ -343,26 +349,20 @@ def main_cli():
                     results = run_health_check_for_device(device, baseline_for_device)
                     print_health_check_results(device.name, results)
                     print("\n" + "-" * 80 + "\n")
-                continue  # Skip further processing.
+                continue
 
             # If the action is not one of the device-specific actions, assume it's a general networking query.
-            device_actions = ["show_interfaces_down", "get_mgmt_ip", "show_ospf_routes_count",
-                              "check_route", "show_uptime", "show_ospf_neighbors_full",
-                              "ping", "traceroute", "bgp_neighbors", "ldp_label_binding", "ldp_neighbors"]
             if normalized_action not in [a.replace("-", "").replace(" ", "") for a in device_actions]:
                 result = process_general_query(query, llm)
                 print("\n" + result)
                 continue
 
-            # Otherwise, process device-specific queries.
-            target_device_str = intent.get("target_device", "")
             if not target_device_str or target_device_str.strip().lower() == "all":
                 print("Please specify a specific device for this action. For general networking questions, switch to general mode.")
                 continue
-            
-            # Process device-specific queries.
+
+            # Process single- or multi-device queries.
             if any(sep in target_device_str.lower() for sep in [",", " and "]):
-                # Multi-device branch.
                 device_names = [name.strip() for name in re.split(r',|\band\b', target_device_str, flags=re.IGNORECASE)]
                 devices = []
                 for name in device_names:
@@ -375,7 +375,7 @@ def main_cli():
                     print("No valid devices found in the target list.")
                     continue
                 extra_params = {}
-                if action not in actions_no_dest_required and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
+                if normalized_action not in [a.replace("-", "").replace(" ", "") for a in actions_no_dest_required] and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
                     extra_params["destination_ip"] = intent.get("destination_ip", "")
                     if not extra_params["destination_ip"]:
                         print("Destination IP address is required for this action.")
@@ -386,7 +386,7 @@ def main_cli():
                     extra_params["mask"] = intent.get("mask", "")
                 device_results = []
                 baseline_data = None
-                if action in ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]:
+                if normalized_action in ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]:
                     try:
                         with open("baseline/healthcheck_baseline.yaml", "r") as f:
                             baseline_data = yaml.safe_load(f)
@@ -440,7 +440,6 @@ def main_cli():
                 combined_explanation = divider.join(explanations)
                 print("\n" + combined_explanation)
             else:
-                # Single device branch.
                 if not target_device_str:
                     print("Target device not specified in the query. Please try again.")
                     continue
@@ -449,7 +448,7 @@ def main_cli():
                     print(f"Device '{target_device_str}' not found in inventory.")
                     continue
                 extra_params = {}
-                if action not in actions_no_dest_required and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
+                if normalized_action not in [a.replace("-", "").replace(" ", "") for a in actions_no_dest_required] and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
                     extra_params["destination_ip"] = intent.get("destination_ip", "")
                     if not extra_params["destination_ip"]:
                         print("Destination IP address is required for this action.")
