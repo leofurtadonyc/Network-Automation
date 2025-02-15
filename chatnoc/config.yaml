@@ -1,6 +1,6 @@
 # config.yaml
 ollama:
-  host: "192.168.0.238"
+  host: "192.168.0.213"
   port: 11434
 
 # authentication:
