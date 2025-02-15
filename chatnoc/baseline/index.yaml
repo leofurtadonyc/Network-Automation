@@ -6,11 +6,15 @@ approved_topics:
 - API-driven Networking
 - Application Aware Networking
 - Artificial Intelligence in Networking
+- ASIC
 - BGP
 - BGP Route Reflectors
+- Bridge Domains
 - Broadband Access
 - Campus Networking
 - Carrier Ethernet
+- CGNAT
+- Carrier-Grade NAT
 - Cloud Connectivity
 - Cloud Networking
 - Cloud SD-WAN
@@ -37,19 +41,26 @@ approved_topics:
 - Flow Monitoring
 - Fog Computing
 - FCoE
+- FPGA
+- FTTH
 - GetVPN
 - gNMI
+- GPON
 - Grafana
 - grpc
 - GRE Tunneling
 - Healthcheck
 - In-band Network Telemetry
 - InfluxDB
+- Infrastructure as Code
+- Integrated routing and bridging
 - Intent-Based Networking
 - IP Multicast
 - IPsec
 - IPv4
 - IPv6
+- IPFIX
+- IRB
 - iSCSI
 - ISIS
 - IS-IS
@@ -62,6 +73,7 @@ approved_topics:
 - LACP
 - LAN Switching
 - Link Aggregation
+- Linux
 - LLDP
 - LDP
 - MACsec
@@ -131,6 +143,7 @@ approved_topics:
 - TRILL
 - UDP
 - Unified Communications Networking
+- Unix
 - Uptime Monitoring
 - Virtual Extensible LAN
 - Virtual LAN Management
@@ -150,6 +163,7 @@ approved_topics:
 - Wireless LAN
 - Wireless Mesh Networking
 - WDM
+- Windows
 - XMPP in Networking
 - Yang
 - Zero Trust Networking
