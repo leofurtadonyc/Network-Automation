@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os
-import yaml
 from netmiko import ConnectHandler
 from auth.auth_manager import get_credentials as load_credentials
 
@@ -44,12 +43,19 @@ def execute_command(device, command):
         "host": device.mgmt_address,
         "username": username,
         "password": password,
-        "port": ssh_port
+        "port": ssh_port,
+        # If your Netmiko version supports these, you can enable them;
+        # otherwise, you can leave them out.
+        # "look_for_keys": False,
+        # "allow_agent": False
     }
     
+    # For Cisco IOS XR, add extra timeouts and delay factor.
     if device.device_type == "cisco_xr":
-        device_params["banner_timeout"] = 200
-        device_params["auth_timeout"] = 200
+        device_params["banner_timeout"] = 300
+        device_params["auth_timeout"] = 300
+        device_params["timeout"] = 300
+        device_params["global_delay_factor"] = 2
     
     try:
         connection = ConnectHandler(**device_params)
@@ -77,7 +83,7 @@ def demo_execute_command(device, command):
         return f"[Demo output not available for command: {command}]"
 
 if __name__ == "__main__":
-    # For testing, define a dummy device.
+    # For testing, define dummy devices.
     class DummyDevice:
         def __init__(self, name, device_type, mgmt_address, ssh_port=22):
             self.name = name
@@ -87,7 +93,11 @@ if __name__ == "__main__":
 
     dummy_device1 = DummyDevice("p1", "cisco_xe", "192.168.255.1", ssh_port=22)
     dummy_device2 = DummyDevice("p2", "cisco_xe", "192.168.255.2", ssh_port=2200)
+    dummy_device3 = DummyDevice("pe2-iosxr", "cisco_xr", "192.168.255.12", ssh_port=22)
+    
     print("Output from p1:")
     print(execute_command(dummy_device1, "show ip interface brief"))
     print("\nOutput from p2:")
     print(execute_command(dummy_device2, "show ip interface brief"))
+    print("\nOutput from pe2-iosxr:")
+    print(execute_command(dummy_device3, "show ip interface brief"))

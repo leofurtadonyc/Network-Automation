@@ -11,5 +11,5 @@ ssh_port: 22
 #   password: "Operador"
 
 authentication:
-  type: "secure"       # Use secure authentication
+  type: "secure" # Use secure authentication
   credentials_file: "credentials.json"  # File that holds hashed credentials

@@ -50,5 +50,11 @@
 # 2025-02-16 02:17:51.633966
 +exit general
 
-# 2025-02-16 02:17:53.323979
-+exit
+# 2025-02-16 04:21:34.523269
++I believe there is a problem in my network, can you check P1?
+
+# 2025-02-16 04:22:02.248257
++I believe there is a problem in my network, can you check PE1-Junos?
+
+# 2025-02-16 04:36:23.858045
++I believe there is a problem in my network, can you check PE2-IOSXR?
