@@ -1,0 +1,11 @@
+P1#show ip route 1.1.1.1
+Routing entry for 1.1.1.0/24
+  Known via "bgp 64515", distance 20, metric 0
+  Tag 64513, type external
+  Last update from 100.64.1.1 02:49:26 ago
+  Routing Descriptor Blocks:
+  * 100.64.1.1, from 100.64.1.1, 02:49:26 ago
+      Route metric is 0, traffic share count is 1
+      AS Hops 2
+      Route tag 64513
+      MPLS label: none

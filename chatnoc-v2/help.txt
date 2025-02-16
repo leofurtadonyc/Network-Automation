@@ -1,0 +1,177 @@
+************************************************************************
+                         Welcome to ChatNOC
+             Network Automation Chatbot & Orchestrator
+ Leonardo Furtado - https://github.com/leofurtadonyc/Network-Automation
+************************************************************************
+
+Overview:
+----------
+ChatNOC is an interactive shell that allows you to query and manage your network devices
+using natural language. It leverages an LLM (Ollama running run llama3.1:8b) to interpret your 
+queries and connects to your devices via SSH in normal mode to execute commands.
+
+ChatNOC is modular and supports:
+  - Default mode that understands your network and interact with network devices.
+  - **Demo Mode** for safe, dry-run experimentation with pre-saved command outputs.
+  - **General Mode** for open-ended networking topics (no device commands executed).
+  - Detailed explanations and health checks based on baseline configurations.
+
+Usage:
+------
+At the prompt, type your query in plain English. You can use multiple languages (e.g., Brazilian Portuguese).
+Here are some examples:
+
+  • "How many OSPF routes does P2 have?"
+  • "Can device P1 reach 100.65.255.14?"
+  • "How many BGP sessions does P1 have?"
+  • "Show interfaces down on P1"
+  • "Get management IP address of P3"
+  • "Ping 1.1.1.1 from P1's loopback"
+  • "Traceroute 1.1.1.1 from P1's loopback"
+  • "Healthcheck P1" (or "Healthcheck P1, P2", etc.)
+  • "Device P2 looks weird... can you check it?"
+  • Open-ended queries about network topics (try in 'general' mode).
+
+Modes:
+------
+Normal Mode:
+  - The default mode. ChatNOC connects to live devices and executes commands.
+  - Type "exit" or "quit" to terminate ChatNOC.
+
+Demo Mode:
+  - To try a dry-run without live device connections, type:
+        demo
+  - In demo mode, pre-saved outputs from the "demo" folder are used.
+  - The prompt will change to:
+        demo-mode >
+  - Available demo devices include:
+        P1 to P8 (Cisco IOS),
+        PE1-Junos (Juniper),
+        PE2-IOSXR (Cisco IOS XR),
+        PE3-Huawei (NE40E),
+        PE4-Nokia (Nokia 7750 SR).
+  - To return to normal mode, type:
+        exit demo
+
+General Mode:
+  - For open-ended questions about networking topics (without executing device commands), type:
+        general
+  - In general mode, the prompt will change to:
+        general-mode >
+  - In this mode, ChatNOC uses an approved topics list (from baseline/index.yaml) to answer
+    your questions. If your query is outside these topics, you’ll be asked to rephrase.
+  - To see the list of approved topics, type:
+        approved topics
+  - To return to normal mode, type:
+        exit general
+
+Available Commands:
+-------------------
+  help            - Displays this help message.
+  history         - Display the last 50 queries.
+  demo            - Enter demo mode (dry-run with pre-saved outputs).
+  general         - Enter general mode for open-ended networking topics.
+  approved topics - Display the list of approved topics for general mode.
+  exit demo       - Exit demo mode (returns to normal mode).
+  exit general    - Exit general mode (returns to normal mode).
+  exit / quit     - In normal mode, terminates ChatNOC.
+
+More info on Modes:
+-------------------
+Normal Mode:
+  • Default mode – executes live commands.
+  • Type "exit" or "quit" to terminate ChatNOC.
+  
+Demo Mode:
+  • Enter by typing: demo
+  • In demo mode, pre-saved outputs from the "demo" folder are used.
+  • Prompt changes to: demo-mode >
+  • To return to normal mode, type: exit demo
+  
+General Mode:
+  • Enter by typing: general
+  • In general mode, device-specific commands are NOT executed.
+  • You can ask open-ended networking questions.
+  • To see approved topics, type: approved topics
+  • To return to normal mode, type: exit general
+
+Folder Structure:
+-----------------
+chatnoc/               # Root of the ChatNOC project.
+├── chatnoc.py         # Main entry point.
+├── __init__.py        # (May be empty.)
+├── core/              # Core CLI and history management.
+│   ├── __init__.py
+│   ├── cli.py
+│   └── history.py
+├── commands/          # Command mapping templates.
+│   ├── __init__.py
+│   └── command_mapper.py
+├── executors/         # Device connection and command execution.
+│   ├── __init__.py
+│   └── netmiko_executor.py
+├── inventory/         # Device inventory and definitions.
+│   ├── __init__.py
+│   └── devices_inventory.py
+├── llm/               # LLM interface (Ollama integration).
+│   ├── __init__.py
+│   └── llm_interface.py
+├── explanations/      # Explanation functions for each command.
+│   ├── __init__.py
+│   ├── ospf_explanation.py
+│   ├── bgp_explanation.py
+│   ├── ldp_explanation.py
+│   ├── route_explanation.py
+│   ├── general_explanation.py
+│   ├── mpls_interfaces_explanation.py
+│   ├── mpls_forwarding_explanation.py
+│   ├── ospf_database_explanation.py
+│   ├── ip_explicit_paths_explanation.py
+│   ├── l2vpn_atom_vc_explanation.py
+│   ├── mpls_traffic_eng_explanation.py
+│   ├── version_explanation.py
+│   ├── bgp_vpnv4_all_explanation.py
+│   └── bgp_vpnv4_vrf_explanation.py
+├── healthcheck/       # Health-check logic.
+│   ├── __init__.py
+│   └── healthcheck.py
+├── config/            # Configuration loading.
+│   ├── __init__.py
+│   └── config_loader.py
+├── baseline/          # Baseline YAML files (healthcheck data, approved topics).
+│   ├── healthcheck_baseline.yaml
+│   └── index.yaml
+├── demo/              # Demo outputs (per device subfolders).
+│   ├── p1/
+│   │    └── (example demo files)
+│   └── p2/
+├── help.txt           # This help file.
+└── requirements.txt   # Python dependencies.
+
+Troubleshooting:
+----------------
+  - Device Connection Issues:
+        • Verify the device’s hostname/IP address, TCP port, and credentials.
+        • Check that the device is powered on and that no firewall is blocking access.
+        
+  - Ollama Errors:
+        • Confirm that Ollama is running and listening on the expected IP address and port.
+        
+  - Demo Mode:
+        • Ensure that the appropriate demo output files exist in the "demo" folder.
+        • If a file is missing or empty, ChatNOC will inform you.
+
+  - General Mode:
+        • If your query does not mention an approved networking topic, you’ll be asked to rephrase your question.
+        • To see which topics are approved, type "approved topics".
+
+Additional Notes:
+-----------------
+  - ChatNOC is designed to be flexible and modular. Future enhancements may include additional baseline types,
+    more explanation scenarios, and further interactive features.
+  - The system also handles profanity and nonsensical queries with light-hearted responses.
+  - Your feedback is welcome as the project evolves!
+
+**************************************************
+            Enjoy using ChatNOC!
+**************************************************

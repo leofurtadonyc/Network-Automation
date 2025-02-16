@@ -1,0 +1,15 @@
+# config.yaml
+ollama:
+  host: "192.168.0.213"
+  port: 11434
+
+ssh_port: 22
+
+# authentication:
+#   type: "plain-text"   # Options: "plain-text" or "secure"
+#   username: "operador"
+#   password: "Operador"
+
+authentication:
+  type: "secure"       # Use secure authentication
+  credentials_file: "credentials.json"  # File that holds hashed credentials

@@ -1,0 +1,6 @@
+<PE3-Huawei>display version 
+Huawei Versatile Routing Platform Software
+VRP (R) software, Version 8.180 (NE40E V800R011C00SPC607B607)
+Copyright (C) 2012-2018 Huawei Technologies Co., Ltd.
+HUAWEI NE40E uptime is 0 day, 0 hour, 19 minutes 
+SVRP Platform Version 1.0

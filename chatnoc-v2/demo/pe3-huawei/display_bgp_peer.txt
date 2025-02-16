@@ -1,0 +1,10 @@
+<PE3-Huawei>display bgp peer 
+ 
+ BGP local router ID : 100.65.255.13
+ Local AS number : 64515
+ Total number of peers : 3                 Peers in established state : 2
+
+  Peer            V          AS  MsgRcvd  MsgSent  OutQ  Up/Down       State  PrefRcv
+  65.65.0.5       4       65001        0        0     0 15:26:16      Active        0
+  100.65.255.5    4       64515     1180     1078     0 15:25:38 Established       43
+  100.65.255.6    4       64515     1197     1081     0 15:25:39 Established       43

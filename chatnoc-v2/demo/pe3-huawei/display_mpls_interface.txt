@@ -1,0 +1,4 @@
+<PE3-Huawei>display mpls interface 
+Interface             Status    TE Attr   Effective MTU
+Eth1/0/0              Up        En        1500     
+Eth1/0/2              Up        En        1500     

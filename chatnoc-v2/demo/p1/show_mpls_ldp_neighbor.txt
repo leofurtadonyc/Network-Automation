@@ -1,0 +1,35 @@
+P1#show mpls ldp neighbor 
+    Peer LDP Ident: 100.65.255.3:0; Local LDP Ident 100.65.255.1:0
+        TCP connection: 100.65.255.3.39122 - 100.65.255.1.646
+        State: Oper; Msgs sent/rcvd: 262/258; Downstream
+        Up time: 03:32:16
+        LDP discovery sources:
+          Ethernet0/1, Src IP addr: 100.65.0.22
+        Addresses bound to peer LDP Ident:
+          100.65.255.3    100.65.0.33     100.65.0.22     100.65.0.29     
+    Peer LDP Ident: 100.65.255.11:0; Local LDP Ident 100.65.255.1:0
+        TCP connection: 100.65.255.11.58221 - 100.65.255.1.646
+        State: Oper; Msgs sent/rcvd: 1452/1276; Downstream
+        Up time: 03:29:27
+        LDP discovery sources:
+          Ethernet0/0, Src IP addr: 100.65.0.1
+        Addresses bound to peer LDP Ident:
+          100.65.0.1      100.65.0.5      100.65.255.11   
+    Peer LDP Ident: 100.65.255.12:0; Local LDP Ident 100.65.255.1:0
+        TCP connection: 100.65.255.12.35857 - 100.65.255.1.646
+        State: Oper; Msgs sent/rcvd: 254/253; Downstream
+        Up time: 03:25:45
+        LDP discovery sources:
+          Ethernet0/2, Src IP addr: 100.65.0.9
+        Addresses bound to peer LDP Ident:
+          100.65.255.12   192.168.255.12  100.65.0.13     65.65.0.10      
+          100.65.0.9      
+    Peer LDP Ident: 100.65.255.2:0; Local LDP Ident 100.65.255.1:0
+        TCP connection: 100.65.255.2.47895 - 100.65.255.1.646
+        State: Oper; Msgs sent/rcvd: 37/43; Downstream
+        Up time: 00:14:38
+        LDP discovery sources:
+          Ethernet0/3, Src IP addr: 100.65.0.18
+        Addresses bound to peer LDP Ident:
+          100.65.255.2    100.65.0.14     100.65.0.25     100.65.0.6      
+          100.65.0.18     100.66.1.2      100.66.65.2     

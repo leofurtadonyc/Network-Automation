@@ -1,0 +1,16 @@
+operador@PE1-Junos> ping 100.65.255.13 source 100.65.255.11 count 10    
+PING 100.65.255.13 (100.65.255.13): 56 data bytes
+64 bytes from 100.65.255.13: icmp_seq=0 ttl=251 time=8.088 ms
+64 bytes from 100.65.255.13: icmp_seq=1 ttl=251 time=3.395 ms
+64 bytes from 100.65.255.13: icmp_seq=2 ttl=251 time=3.745 ms
+64 bytes from 100.65.255.13: icmp_seq=3 ttl=251 time=4.301 ms
+64 bytes from 100.65.255.13: icmp_seq=4 ttl=251 time=3.174 ms
+64 bytes from 100.65.255.13: icmp_seq=5 ttl=251 time=7.178 ms
+64 bytes from 100.65.255.13: icmp_seq=6 ttl=251 time=9.816 ms
+64 bytes from 100.65.255.13: icmp_seq=7 ttl=251 time=9.085 ms
+64 bytes from 100.65.255.13: icmp_seq=8 ttl=251 time=2.760 ms
+64 bytes from 100.65.255.13: icmp_seq=9 ttl=251 time=42.807 ms
+
+--- 100.65.255.13 ping statistics ---
+10 packets transmitted, 10 packets received, 0% packet loss
+round-trip min/avg/max/stddev = 2.760/9.435/42.807/11.401 ms
