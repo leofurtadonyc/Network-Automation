@@ -70,30 +70,3 @@
 
 # 2025-02-16 12:21:08.573511
 +run a "show vpls connections instance CPE-A1_FEC129_VPLS extensive" on pe1-junos
-
-# 2025-02-16 13:13:04.746492
-+execute um "ping 100.65.255.14 source 100.65.255.11" no roteador p1
-
-# 2025-02-16 13:13:09.981241
-+execute um "ping 100.65.255.14 source 100.65.255.11" no  p1
-
-# 2025-02-16 13:13:20.244149
-+execute um "ping 100.65.255.14 source 100.65.255.1" no  p1
-
-# 2025-02-16 13:14:06.653477
-+execute o comando "show mpls lsp detail" no pe1-junos
-
-# 2025-02-16 13:17:04.341449
-+Can P1 reach 100.65.255.14?
-
-# 2025-02-16 13:17:28.967883
-+Is P1 healthy?
-
-# 2025-02-16 13:17:47.304237
-+How many BGP neighbors are there on P2?
-
-# 2025-02-16 13:18:10.289655
-+issue a "show router mpls lsp" on PE4-Nokia
-
-# 2025-02-16 13:18:53.132868
-+issue a "show router mpls lsp" on pe4-nokia

@@ -267,8 +267,8 @@ def main_cli():
                 break
 
             # --- DIRECT COMMAND MODE ---
-            # Look for a pattern like: run/execute/rode "command" on/no/em DeviceName
-            direct_cmd_pattern = r'(?i)^(?:run|execute|rode)(?:\s+\w+)*\s+"([^"]+)"\s+(?:on|no|em)\s+(\S+)'
+            # This pattern looks for any text, then a quoted command, then any text, then one of the prepositions, then the device name at the end.
+            direct_cmd_pattern = r'(?i).*\"([^"]+)\".*\s+(?:on|no|em)\s+(\S+)$'
             direct_match = re.search(direct_cmd_pattern, query)
             if direct_match:
                 direct_cmd = direct_match.group(1)
