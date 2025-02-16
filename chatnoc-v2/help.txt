@@ -137,6 +137,7 @@ chatnoc/               # Root of the ChatNOC project.
 │   └── healthcheck.py
 ├── config/            # Configuration loading.
 │   ├── __init__.py
+│   ├── config.yaml    # Global settings for Ollama, authentication, and language preferences
 │   └── config_loader.py
 ├── baseline/          # Baseline YAML files (healthcheck data, approved topics).
 │   ├── healthcheck_baseline.yaml
