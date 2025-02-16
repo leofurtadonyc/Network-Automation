@@ -45,7 +45,7 @@
 +approved topics
 
 # 2025-02-16 02:17:34.785156
-+what can youy tell me about zero trust networking?
++what can you tell me about zero trust networking?
 
 # 2025-02-16 02:17:51.633966
 +exit general
@@ -58,3 +58,15 @@
 
 # 2025-02-16 04:36:23.858045
 +I believe there is a problem in my network, can you check PE2-IOSXR?
+
+# 2025-02-16 12:16:18.808037
++run a "show mpls lsp detail" on pe1-junos
+
+# 2025-02-16 12:18:16.001003
++Perform "ping 100.65.255.14 source 100.65.255.1" on p1
+
+# 2025-02-16 12:19:37.011881
++run a "show route bgp" on pe2-iosxr
+
+# 2025-02-16 12:21:08.573511
++run a "show vpls connections instance CPE-A1_FEC129_VPLS extensive" on pe1-junos

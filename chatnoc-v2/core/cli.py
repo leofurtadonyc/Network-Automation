@@ -1,6 +1,7 @@
 # core/cli.py
 import re
 import json
+import sys
 import os
 import yaml
 import random
@@ -14,17 +15,27 @@ from commands import get_command
 from executors import execute_command, demo_execute_command
 from llm import get_llm
 
-# Import explanation functions from our explanations package.
+# Import specialized explanation functions.
 from explanations import (
     explain_ospf_neighbors,
     explain_bgp_neighbors,
     explain_ldp_neighbors,
     explain_ldp_label_binding,
     explain_route,
-    explain_general
+    explain_general,
+    explain_mpls_interfaces,
+    explain_mpls_forwarding,
+    explain_ospf_database,
+    explain_ip_explicit_paths,
+    explain_l2vpn_atom_vc,
+    explain_mpls_traffic_eng,
+    explain_version,
+    explain_bgp_vpnv4_all,
+    explain_bgp_vpnv4_vrf
 )
+
+# Import health-check functions.
 from healthcheck import run_health_check_for_device, print_health_check_results
-from core.history import display_history
 
 # Global mode flags.
 demo_mode = False
@@ -98,6 +109,20 @@ def display_help():
     else:
         print("No help file found.")
 
+def display_history():
+    history_file = "chatnoc_history.txt"
+    if os.path.isfile(history_file):
+        with open(history_file, "r") as f:
+            lines = f.read().splitlines()
+        filtered = [line for line in lines if line.strip() and not line.startswith("#")]
+        queries = [line.lstrip("+").strip() for line in filtered]
+        last_50 = queries[-50:] if len(queries) >= 50 else queries
+        print("\nLast 50 queries:")
+        for idx, line in enumerate(last_50, start=1):
+            print(f"{idx}. {line}")
+    else:
+        print("No history file found.")
+
 def get_explanation_function(action):
     if action in ["show_ospf_neighbors_full", "ospf_neighbors"]:
         return explain_ospf_neighbors
@@ -109,33 +134,23 @@ def get_explanation_function(action):
         return explain_ldp_label_binding
     elif action == "check_route":
         return explain_route
-    # For new actions, import and return their specialized explanation functions.
     elif action == "mpls_interfaces":
-        from explanations.mpls_interfaces_explanation import explain_mpls_interfaces
         return explain_mpls_interfaces
     elif action == "mpls_forwarding":
-        from explanations.mpls_forwarding_explanation import explain_mpls_forwarding
         return explain_mpls_forwarding
     elif action == "ospf_database":
-        from explanations.ospf_database_explanation import explain_ospf_database
         return explain_ospf_database
     elif action == "ip_explicit_paths":
-        from explanations.ip_explicit_paths_explanation import explain_ip_explicit_paths
         return explain_ip_explicit_paths
     elif action == "l2vpn_atom_vc":
-        from explanations.l2vpn_atom_vc_explanation import explain_l2vpn_atom_vc
         return explain_l2vpn_atom_vc
     elif action == "mpls_traffic_eng":
-        from explanations.mpls_traffic_eng_explanation import explain_mpls_traffic_eng
         return explain_mpls_traffic_eng
     elif action == "version_full":
-        from explanations.version_explanation import explain_version
         return explain_version
     elif action == "bgp_vpnv4_all":
-        from explanations.bgp_vpnv4_all_explanation import explain_bgp_vpnv4_all
         return explain_bgp_vpnv4_all
     elif action == "bgp_vpnv4_vrf":
-        from explanations.bgp_vpnv4_vrf_explanation import explain_bgp_vpnv4_vrf
         return explain_bgp_vpnv4_vrf
     else:
         return explain_general
@@ -148,9 +163,9 @@ def parse_operator_query(query, llm):
         "You only support queries related to computer networking, your networks, and your customers. "
         "If the query is not about these topics, return { \"action\": \"unsupported\" }.\n"
         "Possible actions include: show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route, "
-        "show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, ldp_neighbors, healthcheck, "
-        "bgp_routes, mpls_interfaces, mpls_forwarding, ospf_database, ip_explicit_paths, l2vpn_atom_vc, mpls_traffic_eng, "
-        "version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.\n\n"
+        "show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, "
+        "ldp_neighbors, healthcheck, bgp_routes, mpls_interfaces, mpls_forwarding, ospf_database, "
+        "ip_explicit_paths, l2vpn_atom_vc, mpls_traffic_eng, version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.\n\n"
         f"Query: {query}\n\n"
         "JSON:"
     )
@@ -180,9 +195,7 @@ def main_cli():
     mode_prompt = lambda: "demo-mode > " if demo_mode else ("general-mode > " if general_mode else "ChatNOC > ")
     banner = pyfiglet.figlet_format("ChatNOC")
     print(banner)
-    print("Welcome to ChatNOC interactive shell V2025.1")
-    print("By Leonardo Furtado - https://github.com/leofurtadonyc\n")
-    print("I am an agent designed to answer questions about your network!")    
+    print("Welcome to ChatNOC interactive shell.")
     print("Type 'help' for usage instructions.")
     print("Type 'history' to display the last 50 queries.")
     print("Type 'demo' to enter demo mode (dry-run with pre-saved outputs).")
@@ -197,9 +210,7 @@ def main_cli():
     llm = get_llm()
     inventory = DeviceInventory()
     
-    # Define actions that do not require a destination IP.
     actions_no_dest_required = ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]
-    # List of device-specific actions (healthcheck is handled separately).
     device_actions = [
         "show_interfaces_down", "get_mgmt_ip", "show_ospf_routes_count",
         "check_route", "show_uptime", "show_ospf_neighbors_full",
@@ -212,6 +223,12 @@ def main_cli():
     while True:
         try:
             query = session.prompt(mode_prompt())
+            
+            # Check for empty query and print a random funny line.
+            if not query.strip():
+                print(random.choice(funny_lines))
+                continue
+
             # Handle help command.
             if query.strip().lower() == "help":
                 display_help()
@@ -242,14 +259,50 @@ def main_cli():
                 general_mode = False
                 print("\nExiting general mode. Now operating in normal mode.\n")
                 continue
-            # In normal mode, 'exit' or 'quit' terminates the program.
+            # In normal mode, exit or quit terminates the program.
             if not demo_mode and not general_mode and query.strip().lower() in ["exit", "quit"]:
                 print("Goodbye!")
                 break
-            if not query.strip():
-                print(random.choice(funny_lines))
-                continue
 
+            # --- DIRECT COMMAND MODE ---
+            # Look for a pattern like: run "command" on DeviceName
+            direct_cmd_pattern = r'"([^"]+)"\s+on\s+(\S+)'
+            direct_match = re.search(direct_cmd_pattern, query)
+            if direct_match:
+                direct_cmd = direct_match.group(1)
+                target_device_name = direct_match.group(2)
+                device = inventory.get_device_by_name(target_device_name)
+                if not device:
+                    print(f"Device '{target_device_name}' not found in inventory.")
+                    continue
+                if demo_mode:
+                    output = demo_execute_command(device, direct_cmd)
+                else:
+                    output = execute_command(device, direct_cmd)
+                
+                # Display the actual command output first.
+                print("\nDevice Output:")
+                print(output)
+                
+                # Build a prompt for Ollama to analyze the command output.
+                analysis_prompt = (
+                    f"You are a seasoned network engineer. Please analyze the following command output from device {device.name} "
+                    f"for the command: {direct_cmd}.\n\n"
+                    f"Output:\n{output}\n\n"
+                    "Provide a detailed explanation of what the command does, what the output indicates, "
+                    "and inspect every detail of the output for errors or issues, "
+                    "and offer troubleshooting recommendations if any issues are detected. Format your response as follows:\n\n"
+                    "Explanation:\n<your explanation here>\n\n"
+                    "Course of Action:\n<your recommendations here>"
+                )
+                try:
+                    explanation_text = llm.invoke(analysis_prompt)
+                except Exception as e:
+                    explanation_text = f"Error generating explanation: {e}"
+                print("\n" + explanation_text)
+                continue
+            # --- END DIRECT COMMAND MODE ---
+            
             # If in general mode, process as a general networking query.
             if general_mode:
                 if query.strip().lower() in ["approved topics", "list approved topics"]:
@@ -272,13 +325,12 @@ def main_cli():
                 continue
 
             action = intent.get("action").lower()
+            if action == "unsupported":
+                print("Sorry, I can only provide support for computer networking, your networks, and your customers. Please rephrase your question to focus on networking topics.\nFor a list of approved topics, type 'approved topics'.")
+                continue
+
             normalized_action = action.replace("-", "").replace(" ", "")
             target_device_str = intent.get("target_device", "")
-
-            if action == "unsupported":
-                print("Sorry, I can only provide support for computer networking, your networks, and your customers. "
-                      "Please rephrase your question to focus on networking topics.\nFor a list of approved topics, type 'approved topics'.")
-                continue
 
             # Healthcheck branch.
             if normalized_action == "healthcheck":
@@ -317,7 +369,6 @@ def main_cli():
                     if "Failed to execute command" in connectivity_output:
                         print(f"Error: Unable to connect to {device.name}: {connectivity_output}")
                         continue
-
                     results = run_health_check_for_device(device, baseline_for_device)
                     print_health_check_results(device.name, results)
                     print("\n" + "-" * 80 + "\n")
