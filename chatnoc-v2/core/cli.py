@@ -5,6 +5,7 @@ import sys
 import os
 import yaml
 import random
+import time
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -164,9 +165,9 @@ def parse_operator_query(query, llm):
         "You only support queries related to computer networking, your networks, and your customers. "
         "If the query is not about these topics, return { \"action\": \"unsupported\" }.\n"
         "Possible actions include: show_interfaces_down, get_mgmt_ip, show_ospf_routes_count, check_route, "
-        "show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, "
-        "ldp_neighbors, healthcheck, bgp_routes, mpls_interfaces, mpls_forwarding, ospf_database, "
-        "ip_explicit_paths, l2vpn_atom_vc, mpls_traffic_eng, version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.\n\n"
+        "show_uptime, show_ospf_neighbors_full, ping, traceroute, bgp_neighbors, ldp_label_binding, ldp_neighbors, healthcheck, "
+        "bgp_routes, mpls_interfaces, mpls_forwarding, ospf_database, ip_explicit_paths, l2vpn_atom_vc, mpls_traffic_eng, "
+        "version_full, bgp_vpnv4_all, bgp_vpnv4_vrf.\n\n"
         f"Query: {query}\n\n"
         "JSON:"
     )
@@ -190,6 +191,255 @@ def parse_operator_query(query, llm):
             print("Error decoding JSON:", e)
     print("Error parsing LLM response, defaulting to empty intent.")
     return {}
+
+def process_query(query, llm, inventory, config):
+    """Process the user query and handle all modes (direct command, general, device-specific, healthcheck)."""
+    # --- DIRECT COMMAND MODE ---
+    # Look for a pattern like: run/execute/rode "command" on/no/em DeviceName
+    direct_cmd_pattern = r'(?i)^(?:run|execute|rode)(?:\s+\w+)*\s+"([^"]+)"\s+(?:on|no|em)\s+(\S+)$'
+    direct_match = re.search(direct_cmd_pattern, query)
+    if direct_match:
+        direct_cmd = direct_match.group(1)
+        target_device_name = direct_match.group(2)
+        device = inventory.get_device_by_name(target_device_name)
+        if not device:
+            print(f"Device '{target_device_name}' not found in inventory.")
+            return
+        output = demo_execute_command(device, direct_cmd) if demo_mode else execute_command(device, direct_cmd)
+        print("\nDevice Output:")
+        print(output)
+        preferred_language = config.get_preferred_language()
+        analysis_prompt = (
+            f"You are a seasoned network engineer who speaks multiple languages. The default language is English, "
+            f"but please respond in the user's preferred language, which is '{preferred_language}'.\n"
+            f"Please analyze the following command output from device {device.name} for the command: {direct_cmd}.\n\n"
+            f"Output:\n{output}\n\n"
+            "Provide a detailed explanation of what the command does, what the output indicates, "
+            "and offer troubleshooting recommendations if any issues are detected. Format your response as follows:\n\n"
+            "Explanation:\n<your explanation here>\n\n"
+            "Course of Action:\n<your recommendations here>"
+        )
+        try:
+            explanation_text = llm.invoke(analysis_prompt)
+        except Exception as e:
+            explanation_text = f"Error generating explanation: {e}"
+        print("\n" + explanation_text)
+        return
+
+    # --- END DIRECT COMMAND MODE ---
+
+    # Check for empty query.
+    if not query.strip():
+        print(random.choice(funny_lines))
+        return
+
+    # Handle help and history commands.
+    if query.strip().lower() == "help":
+        display_help()
+        return
+    if query.strip().lower() == "history":
+        display_history()
+        return
+
+    # Mode switching commands are handled in the main loop; if we get here, we're in normal mode.
+    
+    # Process general networking queries if not device-specific.
+    intent = parse_operator_query(query, llm)
+    if not intent or not intent.get("action"):
+        print("Could not parse the query correctly. Please try again.")
+        return
+    action = intent.get("action").lower()
+    if action == "unsupported":
+        print("Sorry, I can only provide support for computer networking, your networks, and your customers. Please rephrase your question to focus on networking topics.\nFor a list of approved topics, type 'approved topics'.")
+        return
+
+    normalized_action = action.replace("-", "").replace(" ", "")
+    target_device_str = intent.get("target_device", "")
+
+    # Healthcheck branch.
+    if normalized_action == "healthcheck":
+        if target_device_str.strip().lower() == "all":
+            devices_to_check = inventory.get_all_devices()
+        else:
+            if any(sep in target_device_str.lower() for sep in [",", " and "]):
+                device_names = [name.strip() for name in re.split(r',|\band\b', target_device_str, flags=re.IGNORECASE)]
+            else:
+                device_names = [target_device_str.strip()]
+            devices_to_check = []
+            for name in device_names:
+                device = inventory.get_device_by_name(name)
+                if device:
+                    devices_to_check.append(device)
+                else:
+                    print(f"Device '{name}' not found in inventory.")
+            if not devices_to_check:
+                print("No valid devices found for healthcheck.")
+                return
+        try:
+            with open("baseline/healthcheck_baseline.yaml", "r") as f:
+                baseline_data = yaml.safe_load(f)
+        except Exception as e:
+            print(f"Error loading baseline file: {e}")
+            return
+        for device in devices_to_check:
+            print(f"\nPerforming health check on device {device.name} ({device.mgmt_address})...")
+            baseline_for_device = baseline_data.get(device.name)
+            if not baseline_for_device:
+                print(f"No baseline defined for device '{device.name}'. Skipping health check for this device.")
+                continue
+            print(f"Checking connectivity on {device.name}...")
+            connectivity_output = execute_command(device, "show version")
+            if "Failed to execute command" in connectivity_output:
+                print(f"Error: Unable to connect to {device.name}: {connectivity_output}")
+                continue
+            results = run_health_check_for_device(device, baseline_for_device)
+            print_health_check_results(device.name, results)
+        return
+
+    # If the action is not among device-specific actions, treat it as a general query.
+    if normalized_action not in [a.replace("-", "").replace(" ", "") for a in [
+        "show_interfaces_down", "get_mgmt_ip", "show_ospf_routes_count",
+        "check_route", "show_uptime", "show_ospf_neighbors_full",
+        "ping", "traceroute", "bgp_neighbors", "ldp_label_binding",
+        "ldp_neighbors", "bgp_routes", "mpls_interfaces", "mpls_forwarding",
+        "ospf_database", "ip_explicit_paths", "l2vpn_atom_vc", "mpls_traffic_eng",
+        "version_full", "bgp_vpnv4_all", "bgp_vpnv4_vrf"
+    ]]:
+        result = process_general_query(query, llm)
+        print("\n" + result)
+        return
+
+    if not target_device_str or target_device_str.strip().lower() == "all":
+        print("Please specify a specific device for this action. For general networking questions, switch to general mode.")
+        return
+
+    # Process device-specific queries.
+    if any(sep in target_device_str.lower() for sep in [",", " and "]):
+        device_names = [name.strip() for name in re.split(r',|\band\b', target_device_str, flags=re.IGNORECASE)]
+        devices = []
+        for name in device_names:
+            device_obj = inventory.get_device_by_name(name)
+            if device_obj:
+                devices.append(device_obj)
+            else:
+                print(f"Device '{name}' not found in inventory.")
+        if not devices:
+            print("No valid devices found in the target list.")
+            return
+        extra_params = {}
+        if normalized_action not in [a.replace("-", "").replace(" ", "") for a in ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]] and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
+            extra_params["destination_ip"] = intent.get("destination_ip", "")
+            if not extra_params["destination_ip"]:
+                print("Destination IP address is required for this action.")
+                return
+        if action in ["ping", "traceroute"]:
+            extra_params["source_ip"] = intent.get("source_ip", "")
+        if action in ["ldp_label_binding"]:
+            extra_params["mask"] = intent.get("mask", "")
+        device_results = []
+        baseline_data = None
+        if normalized_action in ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]:
+            try:
+                with open("baseline/healthcheck_baseline.yaml", "r") as f:
+                    baseline_data = yaml.safe_load(f)
+            except Exception as e:
+                print(f"Error loading baseline file: {e}")
+        for device in devices:
+            if action in ["ping", "traceroute"] and not extra_params.get("source_ip"):
+                extra_params["source_ip"] = device.loopback_address
+            cmd_result = get_command(action, device.device_type, **extra_params)
+            if not cmd_result:
+                print(f"No command mapping found for action '{action}' on device type '{device.device_type}'.")
+                continue
+            if isinstance(cmd_result, list):
+                combined_output = ""
+                for cmd in cmd_result:
+                    print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd}")
+                    out = demo_execute_command(device, cmd) if demo_mode else execute_command(device, cmd)
+                    combined_output += out + "\n"
+                device_results.append({
+                    "device_name": device.name,
+                    "command": "; ".join(cmd_result),
+                    "output": combined_output,
+                    "baseline": baseline_data.get(device.name) if baseline_data and baseline_data.get(device.name) else None,
+                    "explain_func": get_explanation_function(action)
+                })
+            else:
+                print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd_result}")
+                out = demo_execute_command(device, cmd_result) if demo_mode else execute_command(device, cmd_result)
+                device_results.append({
+                    "device_name": device.name,
+                    "command": cmd_result,
+                    "output": out,
+                    "baseline": baseline_data.get(device.name) if baseline_data and baseline_data.get(device.name) else None,
+                    "explain_func": get_explanation_function(action)
+                })
+        explanations = []
+        for result in device_results:
+            if "Failed to execute command" in result["output"]:
+                error_msg = (
+                    f"Error executing command on {result['device_name']}: {result['output']}\n"
+                    "Troubleshooting suggestions:\n"
+                    "  1. Verify that the device is powered on and reachable.\n"
+                    "  2. Check the hostname/IP address and TCP port.\n"
+                    "  3. Ensure that no firewall is blocking the connection."
+                )
+                explanations.append(error_msg)
+            else:
+                exp = result["explain_func"](query, result["command"], result["output"], result["device_name"], baseline=result.get("baseline"))
+                explanations.append(exp)
+        divider = "\n" + ("-" * 80) + "\n"
+        combined_explanation = divider.join(explanations)
+        print("\n" + combined_explanation)
+    else:
+        if not target_device_str:
+            print("Target device not specified in the query. Please try again.")
+            return
+        device = inventory.get_device_by_name(target_device_str)
+        if not device:
+            print(f"Device '{target_device_str}' not found in inventory.")
+            return
+        extra_params = {}
+        if normalized_action not in [a.replace("-", "").replace(" ", "") for a in ["bgp_neighbors", "ldp_neighbors", "show_ospf_neighbors_full"]] and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
+            extra_params["destination_ip"] = intent.get("destination_ip", "")
+            if not extra_params["destination_ip"]:
+                print("Destination IP address is required for this action.")
+                return
+        if action in ["ping", "traceroute"]:
+            extra_params["source_ip"] = intent.get("source_ip", "")
+            if not extra_params["source_ip"]:
+                extra_params["source_ip"] = device.loopback_address
+        if action in ["ldp_label_binding"]:
+            extra_params["mask"] = intent.get("mask", "")
+        cmd_result = get_command(action, device.device_type, **extra_params)
+        if not cmd_result:
+            print(f"No command mapping found for action '{action}' on device type '{device.device_type}'.")
+            return
+        if isinstance(cmd_result, list):
+            combined_output = ""
+            for cmd in cmd_result:
+                print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd}")
+                out = demo_execute_command(device, cmd) if demo_mode else execute_command(device, cmd)
+                combined_output += out + "\n"
+            explain_func = get_explanation_function(action)
+            if "Failed to execute command" in combined_output:
+                print(f"\nError executing command on {device.name}: {combined_output}")
+            else:
+                explanation_text = explain_func(query, "; ".join(cmd_result), combined_output, device_name=device.name, baseline=None)
+                print("\n" + explanation_text)
+        else:
+            print(f"\nExecuting on {device.name} ({device.mgmt_address}): {cmd_result}")
+            out = demo_execute_command(device, cmd_result) if demo_mode else execute_command(device, cmd_result)
+            explain_func = get_explanation_function(action)
+            if "Failed to execute command" in out:
+                print(f"\nError executing command on {device.name}: {out}")
+            else:
+                explanation_text = explain_func(query, cmd_result, out, device_name=device.name, baseline=None)
+                print("\n" + explanation_text)
+                
+        # End of device-specific processing.
+        
+        return
 
 def main_cli():
     global demo_mode, general_mode
@@ -225,21 +475,15 @@ def main_cli():
     while True:
         try:
             query = session.prompt(mode_prompt())
-            
-            # Check for empty query and print a random funny line.
             if not query.strip():
                 print(random.choice(funny_lines))
                 continue
-
-            # Handle help command.
             if query.strip().lower() == "help":
                 display_help()
                 continue
-            # History command.
             if query.strip().lower() == "history":
                 display_history()
                 continue
-            # Mode switching commands.
             if query.strip().lower() == "demo":
                 demo_mode = True
                 general_mode = False
@@ -261,14 +505,15 @@ def main_cli():
                 general_mode = False
                 print("\nExiting general mode. Now operating in normal mode.\n")
                 continue
-            # In normal mode, exit or quit terminates the program.
             if not demo_mode and not general_mode and query.strip().lower() in ["exit", "quit"]:
                 print("Goodbye!")
                 break
 
+            # Record start time.
+            start_time = time.time()
+            
             # --- DIRECT COMMAND MODE ---
-            # This pattern looks for any text, then a quoted command, then any text, then one of the prepositions, then the device name at the end.
-            direct_cmd_pattern = r'(?i).*\"([^"]+)\".*\s+(?:on|no|em)\s+(\S+)$'
+            direct_cmd_pattern = r'(?i)^(?:run|execute|rode)(?:\s+\w+)*\s+"([^"]+)"\s+(?:on|no|em)\s+(\S+)$'
             direct_match = re.search(direct_cmd_pattern, query)
             if direct_match:
                 direct_cmd = direct_match.group(1)
@@ -277,19 +522,10 @@ def main_cli():
                 if not device:
                     print(f"Device '{target_device_name}' not found in inventory.")
                     continue
-                if demo_mode:
-                    output = demo_execute_command(device, direct_cmd)
-                else:
-                    output = execute_command(device, direct_cmd)
-                
-                # Display the actual command output.
+                output = demo_execute_command(device, direct_cmd) if demo_mode else execute_command(device, direct_cmd)
                 print("\nDevice Output:")
                 print(output)
-                
-                # Retrieve the preferred language from the configuration.
-                preferred_language = config.get_preferred_language()  # 'config' is an instance of Config loaded earlier.
-                
-                # Build a prompt for Ollama to analyze the command output.
+                preferred_language = config.get_preferred_language()
                 analysis_prompt = (
                     f"You are a seasoned network engineer who speaks multiple languages. The default language is English, "
                     f"but please respond in the user's preferred language, which is '{preferred_language}'.\n"
@@ -305,10 +541,12 @@ def main_cli():
                 except Exception as e:
                     explanation_text = f"Error generating explanation: {e}"
                 print("\n" + explanation_text)
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
                 continue
             # --- END DIRECT COMMAND MODE ---
-            
-            # If in general mode, process as a general networking query.
+
+            # General mode.
             if general_mode:
                 if query.strip().lower() in ["approved topics", "list approved topics"]:
                     topics = load_approved_topics()
@@ -318,20 +556,28 @@ def main_cli():
                             print(f"  - {topic}")
                     else:
                         print("No approved topics found.")
+                    elapsed = time.time() - start_time
+                    print(f"\nTotal processing time: {elapsed:.2f} seconds")
                     continue
                 result = process_general_query(query, llm)
                 print("\n" + result)
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
                 continue
 
             # Process device-specific queries.
             intent = parse_operator_query(query, llm)
             if not intent or not intent.get("action"):
                 print("Could not parse the query correctly. Please try again.")
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
                 continue
 
             action = intent.get("action").lower()
             if action == "unsupported":
                 print("Sorry, I can only provide support for computer networking, your networks, and your customers. Please rephrase your question to focus on networking topics.\nFor a list of approved topics, type 'approved topics'.")
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
                 continue
 
             normalized_action = action.replace("-", "").replace(" ", "")
@@ -355,16 +601,19 @@ def main_cli():
                             print(f"Device '{name}' not found in inventory.")
                     if not devices_to_check:
                         print("No valid devices found for healthcheck.")
+                        elapsed = time.time() - start_time
+                        print(f"\nTotal processing time: {elapsed:.2f} seconds")
                         continue
-
+                try:
+                    with open("baseline/healthcheck_baseline.yaml", "r") as f:
+                        baseline_data = yaml.safe_load(f)
+                except Exception as e:
+                    print(f"Error loading baseline file: {e}")
+                    elapsed = time.time() - start_time
+                    print(f"\nTotal processing time: {elapsed:.2f} seconds")
+                    continue
                 for device in devices_to_check:
                     print(f"\nPerforming health check on device {device.name} ({device.mgmt_address})...")
-                    try:
-                        with open("baseline/healthcheck_baseline.yaml", "r") as f:
-                            baseline_data = yaml.safe_load(f)
-                    except Exception as e:
-                        print(f"Error loading baseline file: {e}")
-                        continue
                     baseline_for_device = baseline_data.get(device.name)
                     if not baseline_for_device:
                         print(f"No baseline defined for device '{device.name}'. Skipping health check for this device.")
@@ -376,17 +625,22 @@ def main_cli():
                         continue
                     results = run_health_check_for_device(device, baseline_for_device)
                     print_health_check_results(device.name, results)
-                    print("\n" + "-" * 80 + "\n")
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
                 continue
 
-            # If the action is not one of the device-specific actions, assume it's a general networking query.
+            # If the action is not a device-specific one, treat it as a general networking query.
             if normalized_action not in [a.replace("-", "").replace(" ", "") for a in device_actions]:
                 result = process_general_query(query, llm)
                 print("\n" + result)
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
                 continue
 
             if not target_device_str or target_device_str.strip().lower() == "all":
                 print("Please specify a specific device for this action. For general networking questions, switch to general mode.")
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
                 continue
 
             # Process single- or multi-device queries.
@@ -401,12 +655,16 @@ def main_cli():
                         print(f"Device '{name}' not found in inventory.")
                 if not devices:
                     print("No valid devices found in the target list.")
+                    elapsed = time.time() - start_time
+                    print(f"\nTotal processing time: {elapsed:.2f} seconds")
                     continue
                 extra_params = {}
                 if normalized_action not in [a.replace("-", "").replace(" ", "") for a in actions_no_dest_required] and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
                     extra_params["destination_ip"] = intent.get("destination_ip", "")
                     if not extra_params["destination_ip"]:
                         print("Destination IP address is required for this action.")
+                        elapsed = time.time() - start_time
+                        print(f"\nTotal processing time: {elapsed:.2f} seconds")
                         continue
                 if action in ["ping", "traceroute"]:
                     extra_params["source_ip"] = intent.get("source_ip", "")
@@ -467,19 +725,27 @@ def main_cli():
                 divider = "\n" + ("-" * 80) + "\n"
                 combined_explanation = divider.join(explanations)
                 print("\n" + combined_explanation)
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
             else:
                 if not target_device_str:
                     print("Target device not specified in the query. Please try again.")
+                    elapsed = time.time() - start_time
+                    print(f"\nTotal processing time: {elapsed:.2f} seconds")
                     continue
                 device = inventory.get_device_by_name(target_device_str)
                 if not device:
                     print(f"Device '{target_device_str}' not found in inventory.")
+                    elapsed = time.time() - start_time
+                    print(f"\nTotal processing time: {elapsed:.2f} seconds")
                     continue
                 extra_params = {}
                 if normalized_action not in [a.replace("-", "").replace(" ", "") for a in actions_no_dest_required] and action in ["check_route", "ping", "traceroute", "ldp_label_binding"]:
                     extra_params["destination_ip"] = intent.get("destination_ip", "")
                     if not extra_params["destination_ip"]:
                         print("Destination IP address is required for this action.")
+                        elapsed = time.time() - start_time
+                        print(f"\nTotal processing time: {elapsed:.2f} seconds")
                         continue
                 if action in ["ping", "traceroute"]:
                     extra_params["source_ip"] = intent.get("source_ip", "")
@@ -490,6 +756,8 @@ def main_cli():
                 cmd_result = get_command(action, device.device_type, **extra_params)
                 if not cmd_result:
                     print(f"No command mapping found for action '{action}' on device type '{device.device_type}'.")
+                    elapsed = time.time() - start_time
+                    print(f"\nTotal processing time: {elapsed:.2f} seconds")
                     continue
                 if isinstance(cmd_result, list):
                     combined_output = ""
@@ -512,6 +780,8 @@ def main_cli():
                     else:
                         explanation_text = explain_func(query, cmd_result, out, device_name=device.name, baseline=None)
                         print("\n" + explanation_text)
+                elapsed = time.time() - start_time
+                print(f"\nTotal processing time: {elapsed:.2f} seconds")
         except KeyboardInterrupt:
             print("\nExiting...")
             break
