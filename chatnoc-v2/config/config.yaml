@@ -13,3 +13,5 @@ ssh_port: 22
 authentication:
   type: "secure" # Use secure authentication
   credentials_file: "credentials.json"  # File that holds hashed credentials
+
+preferred_language: "en"  # e.g., "en" for English, "pt" for Portuguese, etc.

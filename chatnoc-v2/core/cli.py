@@ -14,6 +14,7 @@ from inventory import DeviceInventory
 from commands import get_command
 from executors import execute_command, demo_execute_command
 from llm import get_llm
+from config import Config
 
 # Import specialized explanation functions.
 from explanations import (
@@ -192,6 +193,7 @@ def parse_operator_query(query, llm):
 
 def main_cli():
     global demo_mode, general_mode
+    config = Config()  # Load configuration from config/config.yaml
     mode_prompt = lambda: "demo-mode > " if demo_mode else ("general-mode > " if general_mode else "ChatNOC > ")
     banner = pyfiglet.figlet_format("ChatNOC")
     print(banner)
@@ -265,8 +267,8 @@ def main_cli():
                 break
 
             # --- DIRECT COMMAND MODE ---
-            # Look for a pattern like: run "command" on DeviceName
-            direct_cmd_pattern = r'"([^"]+)"\s+on\s+(\S+)'
+            # Look for a pattern like: run/execute/rode "command" on/no/em DeviceName
+            direct_cmd_pattern = r'(?i)^(?:run|execute|rode)(?:\s+\w+)*\s+"([^"]+)"\s+(?:on|no|em)\s+(\S+)'
             direct_match = re.search(direct_cmd_pattern, query)
             if direct_match:
                 direct_cmd = direct_match.group(1)
@@ -280,17 +282,20 @@ def main_cli():
                 else:
                     output = execute_command(device, direct_cmd)
                 
-                # Display the actual command output first.
+                # Display the actual command output.
                 print("\nDevice Output:")
                 print(output)
                 
+                # Retrieve the preferred language from the configuration.
+                preferred_language = config.get_preferred_language()  # 'config' is an instance of Config loaded earlier.
+                
                 # Build a prompt for Ollama to analyze the command output.
                 analysis_prompt = (
-                    f"You are a seasoned network engineer. Please analyze the following command output from device {device.name} "
-                    f"for the command: {direct_cmd}.\n\n"
+                    f"You are a seasoned network engineer who speaks multiple languages. The default language is English, "
+                    f"but please respond in the user's preferred language, which is '{preferred_language}'.\n"
+                    f"Please analyze the following command output from device {device.name} for the command: {direct_cmd}.\n\n"
                     f"Output:\n{output}\n\n"
                     "Provide a detailed explanation of what the command does, what the output indicates, "
-                    "and inspect every detail of the output for errors or issues, "
                     "and offer troubleshooting recommendations if any issues are detected. Format your response as follows:\n\n"
                     "Explanation:\n<your explanation here>\n\n"
                     "Course of Action:\n<your recommendations here>"
