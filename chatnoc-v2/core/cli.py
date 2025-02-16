@@ -534,6 +534,8 @@ def main_cli():
                     "Provide a detailed explanation of what the command does, what the output indicates, "
                     "and offer troubleshooting recommendations if any issues are detected. Format your response as follows:\n\n"
                     "Explanation:\n<your explanation here>\n\n"
+                    "Identified variables (such as interfaces, VLAN ID, source and destination IP addresses, pseudowire ID or VPN ID, hostnames, labels, MTU, control-word, VC-Type, routing instance, etc:)\n\n"
+                    "Identified issues (such as down interfaces, high CPU, memory usage, errors, flaps, etc:)\n\n"
                     "Course of Action:\n<your recommendations here>"
                 )
                 try:
