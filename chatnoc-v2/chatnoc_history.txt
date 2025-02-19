@@ -67,6 +67,3 @@
 
 # 2025-02-16 12:19:37.011881
 +run a "show route bgp" on pe2-iosxr
-
-# 2025-02-16 12:21:08.573511
-+run a "show vpls connections instance CPE-A1_FEC129_VPLS extensive" on pe1-junos

@@ -1,9 +1,11 @@
 # executors/netmiko_executor.py
+#!/usr/bin/env python
 import os
 import json
+import logging
 from netmiko import ConnectHandler
 from auth.auth_manager import get_credentials as load_credentials
-from paramiko import ProxyCommand
+from paramiko import ProxyCommand, SSHException
 from config import Config  # Assumes your Config class loads config/config.yaml
 
 # Mapping from our device_type names to Netmiko device types.
@@ -16,8 +18,11 @@ DEVICE_TYPE_MAPPING = {
     "nokia_sr": "nokia_sros"
 }
 
-# Global variable to cache device credentials.
+# Global variable to cache target device credentials.
 CREDENTIALS = None
+
+# Enable detailed logging.
+logging.basicConfig(level=logging.DEBUG)
 
 def get_cached_credentials():
     global CREDENTIALS
@@ -41,70 +46,89 @@ def execute_command(device, command):
     # Get per-device SSH port; default to 22.
     ssh_port = getattr(device, "ssh_port", 22)
     
-    # Set up basic connection parameters.
+    # Build the connection parameters.
     device_params = {
         "device_type": netmiko_device_type,
         "host": device.mgmt_address,
         "username": username,
         "password": password,
         "port": ssh_port,
-        "conn_timeout": 10,  # Default connection timeout if no jumpserver is used.
+        "conn_timeout": 10  # Lower timeout so failures happen faster.
     }
     
+    # Load global configuration.
+    config = Config()  # Loads from config/config.yaml
+    jump_cfg = config.config_data.get("jumpserver", {})
+    if jump_cfg.get("enabled", False):
+        # Load jumpserver credentials from the specified file in the auth folder.
+        jump_creds_file = jump_cfg.get("credentials_file")
+        if jump_creds_file:
+            jump_creds_path = os.path.join(os.path.dirname(__file__), "..", "auth", jump_creds_file)
+            if os.path.isfile(jump_creds_path):
+                try:
+                    with open(jump_creds_path, "r") as f:
+                        jump_creds = json.load(f)
+                    jump_username = jump_creds.get("username")
+                except Exception as e:
+                    return f"Error loading jumpserver credentials: {e}"
+            else:
+                return f"Jumpserver credentials file '{jump_creds_file}' not found."
+        else:
+            jump_username = jump_cfg.get("username")
+        if not jump_username:
+            return "Jumpserver username not provided in configuration or credentials file."
+        jump_host = jump_cfg.get("host")
+        jump_port = jump_cfg.get("port", 22)
+        # Use extra options if provided (e.g., for specific vendors)
+        extra_options_mapping = jump_cfg.get("extra_options", {})
+        vendor_key = device.device_type.lower()
+        if vendor_key in ["cisco", "cisco_xe"]:
+            vendor_key = "cisco"
+        elif vendor_key == "juniper_junos":
+            vendor_key = "juniper"
+        elif vendor_key == "nokia_sr":
+            vendor_key = "nokia"
+        jump_extra_options = extra_options_mapping.get(vendor_key, "").strip()
+        # Always append options to disable host key checking.
+        additional_opts = "-o StrictHostKeyChecking=no -o BatchMode=yes"
+        if jump_extra_options:
+            proxy_command = f"ssh -q {jump_extra_options} -W %h:%p {jump_username}@{jump_host} -p {jump_port} {additional_opts}"
+        else:
+            proxy_command = f"ssh -q -W %h:%p {jump_username}@{jump_host} -p {jump_port} {additional_opts}"
+        logging.debug(f"Using ProxyCommand: {proxy_command}")
+        try:
+            sock = ProxyCommand(proxy_command)
+            device_params["sock"] = sock
+            # Optionally adjust jumpserver-related timeouts here:
+            device_params["conn_timeout"] = jump_cfg.get("conn_timeout", 15)
+        except Exception as e:
+            return f"Error creating proxy connection through jumpserver: {e}"
+    
     # For Cisco IOS XR, add extra timeouts and delay factor.
-    if device.device_type == "cisco_xr":
+    if device.device_type.lower() == "cisco_xr":
         device_params["banner_timeout"] = 300
         device_params["auth_timeout"] = 300
         device_params["timeout"] = 300
         device_params["global_delay_factor"] = 2
 
-    # Check if jumpserver is enabled in the global config.
-    config = Config()  # Loads configuration from config/config.yaml
-    jump_cfg = config.config_data.get("jumpserver", {})
-    if jump_cfg.get("enabled", False):
-        # Load jumpserver credentials from the file specified in the config.
-        jump_creds_file = jump_cfg.get("credentials_file")
-        if not jump_creds_file:
-            return "Jumpserver is enabled but no credentials_file is defined in config."
-        # Assume the jumpserver credentials file is in the auth folder.
-        jump_creds_path = os.path.join(os.path.dirname(__file__), "..", "auth", jump_creds_file)
-        try:
-            with open(jump_creds_path, "r") as f:
-                jump_creds = json.load(f)
-            jump_username = jump_creds.get("username")
-            if not jump_username:
-                return "Jumpserver credentials missing username."
-        except Exception as e:
-            return f"Error loading jumpserver credentials: {e}"
-        jump_host = jump_cfg.get("host")
-        jump_port = jump_cfg.get("port", 22)
-        # Use jumpserver-specific timeouts (defaulting to 60 seconds).
-        device_params["conn_timeout"] = jump_cfg.get("conn_timeout", 60)
-        device_params["banner_timeout"] = jump_cfg.get("banner_timeout", 60)
-        # Build the ProxyCommand string.
-        proxy_command = f"ssh -q -W %h:%p {jump_username}@{jump_host} -p {jump_port}"
-        try:
-            sock = ProxyCommand(proxy_command)
-            device_params["sock"] = sock
-        except Exception as e:
-            return f"Error creating proxy connection through jumpserver: {e}"
-    
     try:
+        logging.debug(f"Connecting to {device.name} with parameters: {device_params}")
         connection = ConnectHandler(**device_params)
         output = connection.send_command(command)
         connection.disconnect()
+        logging.debug(f"Command output from {device.name}: {output}")
         return output
+    except SSHException as sshe:
+        logging.error(f"SSHException for device {device.name}: {sshe}")
+        return f"Failed to execute command on {device.name}: {sshe}"
     except Exception as e:
+        logging.error(f"Exception for device {device.name}: {e}")
         return f"Failed to execute command on {device.name}: {e}"
 
 def demo_execute_command(device, command):
-    """
-    In demo mode, load the command output from a file in the "demo" folder.
-    Filename: demo/<device.name.lower()>/<normalized_command>.txt
-    """
     normalized = command.strip().lower().replace(" ", "_").replace("|", "").replace(":", "")
     demo_file = os.path.join("demo", device.name.lower(), f"{normalized}.txt")
-    print(f"DEBUG: Looking for demo file: {demo_file}")
+    logging.debug(f"Looking for demo file: {demo_file}")
     if os.path.isfile(demo_file):
         with open(demo_file, "r") as f:
             content = f.read()
@@ -115,7 +139,7 @@ def demo_execute_command(device, command):
         return f"[Demo output not available for command: {command}]"
 
 if __name__ == "__main__":
-    # For testing, define dummy devices.
+    # For testing, define some dummy devices.
     class DummyDevice:
         def __init__(self, name, device_type, mgmt_address, ssh_port=22):
             self.name = name
