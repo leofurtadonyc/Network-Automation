@@ -1,4 +1,4 @@
-# config.yaml
+# config/config.yaml
 ollama:
   host: "192.168.0.213"
   port: 11434
@@ -15,3 +15,10 @@ authentication:
   credentials_file: "credentials.json"  # File that holds hashed credentials
 
 preferred_language: "en"  # e.g., "en" for English, "pt" for Portuguese, etc.
+
+# Jumpserver settings
+jumpserver:
+  enabled: true
+  host: "192.168.0.108"
+  port: 22
+  credentials_file: "jumpserver_credentials.json"  # File that holds hashed credentials

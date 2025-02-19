@@ -1,7 +1,10 @@
-#!/usr/bin/env python
+# executors/netmiko_executor.py
 import os
+import json
 from netmiko import ConnectHandler
 from auth.auth_manager import get_credentials as load_credentials
+from paramiko import ProxyCommand
+from config import Config  # Assumes your Config class loads config/config.yaml
 
 # Mapping from our device_type names to Netmiko device types.
 DEVICE_TYPE_MAPPING = {
@@ -13,7 +16,7 @@ DEVICE_TYPE_MAPPING = {
     "nokia_sr": "nokia_sros"
 }
 
-# Global variable to cache credentials.
+# Global variable to cache device credentials.
 CREDENTIALS = None
 
 def get_cached_credentials():
@@ -38,16 +41,14 @@ def execute_command(device, command):
     # Get per-device SSH port; default to 22.
     ssh_port = getattr(device, "ssh_port", 22)
     
+    # Set up basic connection parameters.
     device_params = {
         "device_type": netmiko_device_type,
         "host": device.mgmt_address,
         "username": username,
         "password": password,
         "port": ssh_port,
-        # If your Netmiko version supports these, you can enable them;
-        # otherwise, you can leave them out.
-        # "look_for_keys": False,
-        # "allow_agent": False
+        "conn_timeout": 10,  # Default connection timeout if no jumpserver is used.
     }
     
     # For Cisco IOS XR, add extra timeouts and delay factor.
@@ -56,6 +57,37 @@ def execute_command(device, command):
         device_params["auth_timeout"] = 300
         device_params["timeout"] = 300
         device_params["global_delay_factor"] = 2
+
+    # Check if jumpserver is enabled in the global config.
+    config = Config()  # Loads configuration from config/config.yaml
+    jump_cfg = config.config_data.get("jumpserver", {})
+    if jump_cfg.get("enabled", False):
+        # Load jumpserver credentials from the file specified in the config.
+        jump_creds_file = jump_cfg.get("credentials_file")
+        if not jump_creds_file:
+            return "Jumpserver is enabled but no credentials_file is defined in config."
+        # Assume the jumpserver credentials file is in the auth folder.
+        jump_creds_path = os.path.join(os.path.dirname(__file__), "..", "auth", jump_creds_file)
+        try:
+            with open(jump_creds_path, "r") as f:
+                jump_creds = json.load(f)
+            jump_username = jump_creds.get("username")
+            if not jump_username:
+                return "Jumpserver credentials missing username."
+        except Exception as e:
+            return f"Error loading jumpserver credentials: {e}"
+        jump_host = jump_cfg.get("host")
+        jump_port = jump_cfg.get("port", 22)
+        # Use jumpserver-specific timeouts (defaulting to 60 seconds).
+        device_params["conn_timeout"] = jump_cfg.get("conn_timeout", 60)
+        device_params["banner_timeout"] = jump_cfg.get("banner_timeout", 60)
+        # Build the ProxyCommand string.
+        proxy_command = f"ssh -q -W %h:%p {jump_username}@{jump_host} -p {jump_port}"
+        try:
+            sock = ProxyCommand(proxy_command)
+            device_params["sock"] = sock
+        except Exception as e:
+            return f"Error creating proxy connection through jumpserver: {e}"
     
     try:
         connection = ConnectHandler(**device_params)
