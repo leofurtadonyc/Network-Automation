@@ -1,5 +1,4 @@
 # executors/netmiko_executor.py
-#!/usr/bin/env python
 import os
 import json
 import logging
@@ -21,8 +20,12 @@ DEVICE_TYPE_MAPPING = {
 # Global variable to cache target device credentials.
 CREDENTIALS = None
 
-# Enable detailed logging.
-logging.basicConfig(level=logging.DEBUG)
+# Load global configuration and set logging level based on debug flag.
+config_instance = Config()  # Loads from config/config.yaml
+if config_instance.config_data.get("debug", False):
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.WARNING)
 
 def get_cached_credentials():
     global CREDENTIALS
@@ -46,7 +49,7 @@ def execute_command(device, command):
     # Get per-device SSH port; default to 22.
     ssh_port = getattr(device, "ssh_port", 22)
     
-    # Build the connection parameters.
+    # Build the basic connection parameters.
     device_params = {
         "device_type": netmiko_device_type,
         "host": device.mgmt_address,
@@ -56,9 +59,8 @@ def execute_command(device, command):
         "conn_timeout": 10  # Lower timeout so failures happen faster.
     }
     
-    # Load global configuration.
-    config = Config()  # Loads from config/config.yaml
-    jump_cfg = config.config_data.get("jumpserver", {})
+    # Use our already-loaded global configuration.
+    jump_cfg = config_instance.config_data.get("jumpserver", {})
     if jump_cfg.get("enabled", False):
         # Load jumpserver credentials from the specified file in the auth folder.
         jump_creds_file = jump_cfg.get("credentials_file")
@@ -69,6 +71,8 @@ def execute_command(device, command):
                     with open(jump_creds_path, "r") as f:
                         jump_creds = json.load(f)
                     jump_username = jump_creds.get("username")
+                    # Note: We assume that the jumpserver is accessed using key-based authentication.
+                    # If you need password-based authentication on the jumpserver, you might consider using sshpass.
                 except Exception as e:
                     return f"Error loading jumpserver credentials: {e}"
             else:
@@ -79,7 +83,7 @@ def execute_command(device, command):
             return "Jumpserver username not provided in configuration or credentials file."
         jump_host = jump_cfg.get("host")
         jump_port = jump_cfg.get("port", 22)
-        # Use extra options if provided (e.g., for specific vendors)
+        # Use extra options if provided (e.g., for specific vendors).
         extra_options_mapping = jump_cfg.get("extra_options", {})
         vendor_key = device.device_type.lower()
         if vendor_key in ["cisco", "cisco_xe"]:
@@ -91,15 +95,15 @@ def execute_command(device, command):
         jump_extra_options = extra_options_mapping.get(vendor_key, "").strip()
         # Always append options to disable host key checking.
         additional_opts = "-o StrictHostKeyChecking=no -o BatchMode=yes"
+        # Here we directly forward to the target device's mgmt_address and port.
         if jump_extra_options:
-            proxy_command = f"ssh -q {jump_extra_options} -W %h:%p {jump_username}@{jump_host} -p {jump_port} {additional_opts}"
+            proxy_command = f"ssh -q {jump_extra_options} -W {device.mgmt_address}:{ssh_port} {jump_username}@{jump_host} -p {jump_port} {additional_opts}"
         else:
-            proxy_command = f"ssh -q -W %h:%p {jump_username}@{jump_host} -p {jump_port} {additional_opts}"
+            proxy_command = f"ssh -q -W {device.mgmt_address}:{ssh_port} {jump_username}@{jump_host} -p {jump_port} {additional_opts}"
         logging.debug(f"Using ProxyCommand: {proxy_command}")
         try:
             sock = ProxyCommand(proxy_command)
             device_params["sock"] = sock
-            # Optionally adjust jumpserver-related timeouts here:
             device_params["conn_timeout"] = jump_cfg.get("conn_timeout", 15)
         except Exception as e:
             return f"Error creating proxy connection through jumpserver: {e}"
@@ -139,7 +143,7 @@ def demo_execute_command(device, command):
         return f"[Demo output not available for command: {command}]"
 
 if __name__ == "__main__":
-    # For testing, define some dummy devices.
+    # For testing purposes, define some dummy devices.
     class DummyDevice:
         def __init__(self, name, device_type, mgmt_address, ssh_port=22):
             self.name = name
