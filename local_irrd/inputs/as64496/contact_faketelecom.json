@@ -1,0 +1,10 @@
+{
+    "object_type": "person",
+    "action": "add",
+    "data": {
+        "object_text": "person:         FAKEME5-NICBR\naddress:        I Live Under The Bridge N100\nphone:          +353IRELAND\nnic-hdl:        FAKEME5-NICBR\ne-mail:        noc@faketelecom.null\n         \nmnt-by:         MAINT-AS64496\nsource:         IRRD",
+        "identifier": "FAKEME5-NICBR",
+        "passwords": []
+    },
+    "status": "pending"
+}

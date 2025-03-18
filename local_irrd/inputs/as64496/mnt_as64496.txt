@@ -1,0 +1,11 @@
+# MAKE SURE TO CHANGE THE DESIRED ACTION. OPTIONS ARE: add, modify, delete
+action: add
+mntner:         MAINT-AS64496
+descr:          FAKE TELECOM
+admin-c:        FAKEME5-NICBR
+tech-c:         FAKEME5-NICBR
+upd-to:         noc@faketelecom.null
+mnt-nfy:        noc@faketelecom.null
+auth:           MD5-PW \$1\$1dwDrK3S\$4U0XfqK1qS/07BvguD6qQ0\n\
+mnt-by:         MAINT-AS64496
+source:         IRRD

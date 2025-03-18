@@ -1,0 +1,68 @@
+# MAKE SURE TO CHANGE THE DESIRED ACTION. OPTIONS ARE: add, modify, delete
+action: add
+aut-num:        AS64496
+as-name:        AS64496
+descr:          FAKE TELECOM
+member-of:      AS-PTTMetro-SP
+member-of:      AS-PTTMetro-ATM4-SP
+member-of:      AS-PTTMetro-ATM6-SP
+import:         from AS64510 accept ANY
+import:         from AS64511 accept ANY
+mp-import:      afi ipv6.unicast from AS64510 accept ANY
+mp-import:      afi ipv6.unicast from AS64511 accept ANY
+export:         to AS64510 announce AS64496:AS-FAKETELECOM-ALL
+export:         to AS64511 announce AS64496:AS-FAKETELECOM-ALL
+mp-export:      afi ipv6.unicast to AS64510 announce AS64496:AS-FAKETELECOM-ALL
+mp-export:      afi ipv6.unicast to AS64511 announce AS64496:AS-FAKETELECOM-ALL
+admin-c:        FAKEME5-NICBR
+tech-c:         FAKEME5-NICBR
+remarks:        ==========================================================
+                FAKE TELECOM (AS64496)
+                Abuse/UCE: abuse@faketelecom.null
+                Network: noc@faketelecom.null
+                Peering: peering@faketelecom.null
+                Peering and Routing Policy: http://as64496.peeringdb.com/
+                Website: https://faketelecom.null
+                ==========================================================
+remarks:        ===============================================
+                24 x 7 technical support regarding our BGP routing
+                policies or any inquiries concerning AS64496's
+                security and routing policies please reach out to us
+                at the following channels:
+remarks:        Network issues / requests: noc@faketelecom.null
+                Peering issues / requests: peering@faketelecom.null
+                Abuse and SPAM : abuse@faketelecom.null
+                ===============================================
+remarks:        ============================================================
+                AS64496 Basic Interconnection Requirements
+                ============================================================
+remarks:        The following is required from your organization in order to
+                establish a BGP session with FAKE TELECOM at ASN AS64496:
+                - The customer must use a RIR assigned ASN.
+                - The customer must have a route/route6 object for each prefix
+                it intends to announce to us, which might include its own
+                prefixes and, if desired, its customers' prefixes as well (customer cone).
+                - Each route/route6 object corresponding to a customer prefix
+                (yours or a prefix from your customer cone) must inform the
+                correct ASN in its 'origin' field.
+                - The ASN mentioned in the 'origin' field of each route and route6
+                object must have its proper and corresponding aut-num object.
+                - The aforementioned aut-num objects must have a clear routing
+                policy stating what as-sets are to be announced to us.
+                - This as-set MUST be informed on PeeringDB ("IRR as-set/route-set")
+remarks:        FAKE TELECOM strongly encourages you to use two simultaneous methods to
+                validate the origin of the prefixes you announce to us: IRR and ROA
+                (published in your RPKI regime). This is highly recommended because
+                some of our direct upstreams and also indirect upstreams may reject
+                any routes where there is a failure in the origin validation process.
+remarks:        You can start this process by "cleaning up your own house first", then
+                working directly with your customers so they can do their homework too,
+                and, by doing that, we can all prevent route leaks and prefix hijacking
+                from happening. :-)
+remarks:        Last but not least, please feel free to contact us if you have any questions
+                or need our assistance in working these best practices with you!
+                We will definitely make ourselves available to increase the security of the
+                Internet, your experience as our customer/partner, and in the best
+                interest of our mutual agreement!
+mnt-by:         MAINT-AS64496
+source:         IRRD

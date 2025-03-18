@@ -1,0 +1,10 @@
+# MAKE SURE TO CHANGE THE DESIRED ACTION. OPTIONS ARE: add, modify, delete
+action: add
+route-set: AS64496:RS-ROUTES
+descr: FAKE TELECOM
+mp-members: 198.18.0.0/15^15-24
+mp-members: 2001:db8::/32^32-48
+admin-c: FAKEME5-NICBR
+mnt-by: MAINT-AS64496
+notify: noc@faketelecom.null
+source: IRRD

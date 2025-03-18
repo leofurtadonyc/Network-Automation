@@ -1,0 +1,15 @@
+# MAKE SURE TO CHANGE THE DESIRED ACTION. OPTIONS ARE: add, modify, delete
+action: add
+as-set:         AS64496:AS-FAKETELECOM-ALL
+descr:          FAKETELECOM TELECOM main as-set
+members:        AS-FAKETELECOM  # FAKETELECOM own networks
+members:        AS-FAKETELECOM-CUSTOMERS  # FAKETELECOM customer cone
+admin-c:        FAKEME5-NICBR
+tech-c:         FAKEME5-NICBR
+remarks:        *****************************************************
+                This as-set binds two other as-sets:
+                Our customers (AS-FAKETELECOM-CUSTOMERS).
+                Our own networks (AS-FAKETELECOM).
+                *****************************************************
+mnt-by:         MAINT-AS64496
+source:         IRRD
