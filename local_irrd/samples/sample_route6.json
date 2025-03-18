@@ -1,0 +1,10 @@
+{
+    "object_type": "route6",
+    "action": "add",
+    "data": {
+        "object_text": "route6:        2001:db8::/32\norigin:        AS12345\ndescr:         Example IPv6 route\nmnt-by:        EXAMPLE-MNT\nsource:        ALTDB",
+        "identifier": "2001:db8::/32",
+        "passwords": ["password123"]
+    },
+    "status": "pending"
+}

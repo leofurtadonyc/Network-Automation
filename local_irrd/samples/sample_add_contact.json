@@ -1,0 +1,10 @@
+{
+    "object_type": "person",
+    "action": "add",
+    "data": {
+        "object_text": "person:         CONTACT-TEST\naddress:        123 Example Street\nphone:          +1 555-0100\nnic-hdl:        CONTACT-TEST\ne-mail:        noc@example.com\n         \nmnt-by:         MAINT-TEST\nsource:         IRRD",
+        "identifier": "CONTACT-TEST",
+        "passwords": ["Juniper"]
+    },
+    "status": "pending"
+}

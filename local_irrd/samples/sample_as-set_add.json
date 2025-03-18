@@ -1,0 +1,10 @@
+{
+    "object_type": "as-set",
+    "action": "add",
+    "data": {
+        "object_text": "as-set:        AS12345:AS-EXAMPLE\nmembers:        AS12345, AS23456\nmnt-by:         MAINT-TEST\nsource:         IRRD",
+        "identifier": "AS12345:EXAMPLE",
+        "passwords": ["Juniper"]
+    },
+    "status": "pending"
+}

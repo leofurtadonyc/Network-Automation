@@ -1,0 +1,10 @@
+{
+    "object_type": "mntner",
+    "action": "add",
+    "data": {
+        "object_text": "mntner:         MAINT-AS263324\ndescr:          NETECOM\nadmin-c: RODRIGOOGOMES\ntech-c: RUDSONCOSTA\nupd-to:         noc@netecom.com.br\nmnt-nfy:        noc@netecom.com.br\nauth:           MD5-PW $1$1dwDrK3S$4U0XfqK1qS/07BvguD6qQ0\nmnt-by:         MAINT-AS263324\nchanged:        noc@netecom.com.br 20220815  #15:05:53Z\nsource:         IRRD",
+        "identifier": "MAINT-AS263324",
+        "passwords": []
+    },
+    "status": "pending"
+}

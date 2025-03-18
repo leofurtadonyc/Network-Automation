@@ -1,0 +1,10 @@
+{
+    "object_type": "person",
+    "action": "modify",
+    "data": {
+        "object_text": "person:         RUDSONCOSTA\naddress:        123 Example Street\nphone:          +1 555-0100\nnic-hdl:        RUDSONCOSTA\ne-mail:        noc@example.com\n         \nmnt-by:         MAINT-AS263324\nsource:         IRRD",
+        "identifier": "RUDSONCOSTA",
+        "passwords": []
+    },
+    "status": "pending"
+}
