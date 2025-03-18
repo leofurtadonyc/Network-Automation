@@ -18,6 +18,7 @@ Options:
 """
 
 import argparse
+import ipaddress
 import json
 import os
 import sys
@@ -32,16 +33,12 @@ def sanitize_nic_handle(handle):
     remove any characters that are not alphanumeric or dash,
     and convert the result to uppercase.
     
-    If the handle already has no spaces and includes a dash,
-    simply return its uppercase version.
+    If the handle already appears valid (no spaces and contains a dash), return uppercase.
     """
-    # If no spaces and already contains a dash, assume it's valid.
     if " " not in handle and "-" in handle:
         return handle.upper()
     else:
-        # Replace spaces with dashes.
         new_handle = handle.replace(" ", "-")
-        # Remove any characters that are not alphanumeric or dash.
         allowed = set(string.ascii_letters + string.digits + "-")
         new_handle = "".join(ch for ch in new_handle if ch in allowed)
         return new_handle.upper()
@@ -49,10 +46,12 @@ def sanitize_nic_handle(handle):
 def process_txt_file(txt_filename):
     """
     Processes a human-friendly .txt file.
-    Expects the first non-comment, non-empty line to declare the action (e.g. "action: add").
-    The remainder of the file should contain the RPSL object text with fields supported by IRRd/ALTDB.
+    Expects the first few non-comment, non-empty lines to declare header metadata:
+      - "action:" is required.
+      - Optionally "password:" and "multiple_routes:" may appear.
+    The remainder of the file forms the RPSL object text.
     
-    It will automatically sanitize the values for "admin-c" and "tech-c" fields.
+    It automatically sanitizes the values for "admin-c" and "tech-c" fields.
     
     Returns a tuple: (json_dict, object_type, identifier)
     where json_dict is the JSON representation to be submitted.
@@ -60,25 +59,41 @@ def process_txt_file(txt_filename):
     with open(txt_filename, "r") as f:
         lines = f.readlines()
 
-    # Remove newline characters and trailing whitespace.
+    # Remove trailing whitespace.
     lines = [line.rstrip() for line in lines]
 
-    # Filter out empty lines and comment lines (starting with "#")
+    # Filter out empty and comment lines.
     non_comment_lines = [line for line in lines if line.strip() and not line.strip().startswith("#")]
     if not non_comment_lines:
         raise Exception("No non-comment content found in file.")
 
-    # First non-comment line declares the action.
-    first_line = non_comment_lines[0].strip()
-    if first_line.lower().startswith("action:"):
-        action = first_line.split(":", 1)[1].strip()
-    else:
-        action = first_line.strip()
+    # Initialize header values.
+    action = None
+    password = None
+    multiple_routes = False
 
-    # The remainder of the lines form the RPSL object text.
-    rpsl_text_lines = non_comment_lines[1:]
+    header_keys = {"action", "password", "multiple_routes"}
+    content_start = 0
+    for i, line in enumerate(non_comment_lines):
+        parts = line.split(":", 1)
+        if len(parts) == 2:
+            key = parts[0].strip().lower()
+            if key in header_keys:
+                if key == "action":
+                    action = parts[1].strip()
+                elif key == "password":
+                    password = parts[1].strip()
+                elif key == "multiple_routes":
+                    value = parts[1].strip().lower()
+                    multiple_routes = (value == "true")
+                continue
+        content_start = i
+        break
+
+    # The remaining lines form the RPSL object text.
+    rpsl_text_lines = non_comment_lines[content_start:]
     if not rpsl_text_lines:
-        raise Exception("No RPSL content found after the action declaration.")
+        raise Exception("No RPSL content found after header.")
 
     # Sanitize admin-c and tech-c fields.
     processed_lines = []
@@ -118,15 +133,54 @@ def process_txt_file(txt_filename):
 
     json_dict = {
         "object_type": object_type,
-        "action": action.lower(),
+        "action": action.lower() if action else "",
         "data": {
             "object_text": rpsl_text,
             "identifier": identifier,
-            "passwords": []  # To be filled via command-line override if needed.
+            "passwords": [password] if password else []
         },
         "status": "pending"
     }
+    # Store the multiple_routes flag at top level (not inside "data")
+    json_dict["multiple_routes"] = multiple_routes
+
     return json_dict, object_type, identifier
+
+def generate_route_subobjects(rpsl_text):
+    """
+    For a route object (IPv4), generates additional route objects.
+    It extracts the network from the first "route:" line and generates subdivisions
+    from (original prefix length + 1) up to /24.
+    
+    Returns a list of route object texts.
+    """
+    import ipaddress
+
+    lines = rpsl_text.splitlines()
+    new_objects = []
+    # Find the route line (case-insensitive).
+    for i, line in enumerate(lines):
+        if line.lower().startswith("route:"):
+            parts = line.split(":", 1)
+            if len(parts) != 2:
+                raise Exception("Invalid route line format.")
+            route_val = parts[1].strip()
+            try:
+                network = ipaddress.IPv4Network(route_val, strict=False)
+            except Exception as e:
+                raise Exception(f"Error parsing route value '{route_val}': {e}")
+            # For each new prefix length from original.prefixlen+1 to 24:
+            for new_plen in range(network.prefixlen + 1, 25):
+                for subnet in network.subnets(new_prefix=new_plen):
+                    new_lines = []
+                    for line in lines:
+                        if line.lower().startswith("route:"):
+                            new_lines.append(f"route:         {subnet}")
+                        else:
+                            new_lines.append(line)
+                    new_objects.append("\n".join(new_lines))
+            break  # Only process the first "route:" line.
+    return new_objects
 
 def save_json_object(json_data, object_type, identifier):
     """
@@ -141,22 +195,22 @@ def save_json_object(json_data, object_type, identifier):
         json.dump(json_data, f, indent=4)
     return filename
 
-def submit_rpsl_change(api_url, rpsl_text, passwords, action=None):
+def submit_rpsl_change(api_url, objects_list, passwords, action=None):
     """
-    Submits an RPSL object change to the IRRd HTTP API using POST for most actions,
-    and DELETE if the action is "delete".
+    Submits one or more RPSL object changes to the IRRd HTTP API.
+    Uses POST for most actions and DELETE if action is "delete".
 
     Args:
         api_url (str): The API endpoint URL.
-        rpsl_text (str): The complete RPSL object as a string.
+        objects_list (list): A list of RPSL object texts.
         passwords (list): List of passwords for authentication.
-        action (str, optional): The action to perform, e.g. "delete".
+        action (str, optional): The action to perform, e.g., "delete".
 
     Returns:
         dict: JSON response from the API.
     """
     payload = {
-        "objects": [{"object_text": rpsl_text}],
+        "objects": [{"object_text": obj} for obj in objects_list],
         "passwords": passwords
     }
     if action and action.lower() == "delete":
@@ -234,9 +288,22 @@ def main():
             sys.exit(1)
         json_filename = save_json_object(json_dict, object_type, identifier)
         print(f"Generated JSON file: {json_filename}")
-        rpsl_text = json_dict["data"]["object_text"]
+        base_rpsl_text = json_dict["data"]["object_text"]
         action = json_dict.get("action", None)
         passwords = json_dict["data"].get("passwords", [])
+        # Retrieve the multiple_routes flag from top-level.
+        multiple_routes = json_dict.get("multiple_routes", False)
+        if multiple_routes and object_type == "route":
+            try:
+                generated_objects = generate_route_subobjects(base_rpsl_text)
+                # Update the JSON to include the generated objects.
+                json_dict["generated_objects"] = generated_objects
+                objects_to_submit = generated_objects
+            except Exception as e:
+                print(f"Error generating multiple route objects: {e}", file=sys.stderr)
+                sys.exit(1)
+        else:
+            objects_to_submit = [base_rpsl_text]
     else:
         try:
             with open(args.file, "r") as f:
@@ -246,7 +313,7 @@ def main():
             sys.exit(1)
         action = None
         passwords = []
-        rpsl_text = file_content
+        base_rpsl_text = file_content
         try:
             parsed = json.loads(file_content)
             if isinstance(parsed, dict):
@@ -254,18 +321,19 @@ def main():
                 if "data" in parsed:
                     data = parsed["data"]
                     if "object_text" in data:
-                        rpsl_text = data["object_text"]
+                        base_rpsl_text = data["object_text"]
                     if "passwords" in data:
                         passwords = data["passwords"]
         except json.JSONDecodeError:
             pass
+        objects_to_submit = [base_rpsl_text]
 
     if args.override:
         passwords = [args.override]
 
-    print(f"Submitting RPSL object from '{args.file}' to {server}:{port} "
+    print(f"Submitting RPSL object(s) from '{args.file}' to {server}:{port} "
           f"(Instance: {args.instance}, DB type: {args.db_type}, Action: {action})...")
-    result = submit_rpsl_change(api_url, rpsl_text, passwords, action)
+    result = submit_rpsl_change(api_url, objects_to_submit, passwords, action)
     print("Response from server:")
     print(json.dumps(result, indent=4))
 
