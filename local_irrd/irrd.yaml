@@ -6,8 +6,7 @@ irrd:
     level: DEBUG
     logfile_path: /var/log/irrd/irrd.log
   redis_url: "redis://redis:6379"
-  piddir: /var/run/irrd/
-  # (User and group settings removed as discussed)
+  piddir: /var/run/irrd/  
   rpki:
     roa_source: null
   access_lists:
@@ -22,7 +21,7 @@ irrd:
       url: "http://127.0.0.1:8080"
       status_access_list: http_api
     whois:
-      interface: "0.0.0.0"   # Change this from "::0" to a plain string.
+      interface: "0.0.0.0"
       port: 8043
   email:
     from: irrd@example.com
