@@ -22,14 +22,29 @@ import json
 import os
 import sys
 import requests
+import string
 
 def sanitize_nic_handle(handle):
     """
-    Transform the given handle into a valid NIC handle:
-    - Remove all non-alphanumeric characters.
-    - Convert to uppercase.
+    Transform the given handle into a valid NIC handle.
+    
+    If the handle contains spaces, replace them with dashes,
+    remove any characters that are not alphanumeric or dash,
+    and convert the result to uppercase.
+    
+    If the handle already has no spaces and includes a dash,
+    simply return its uppercase version.
     """
-    return ''.join(ch for ch in handle if ch.isalnum()).upper()
+    # If no spaces and already contains a dash, assume it's valid.
+    if " " not in handle and "-" in handle:
+        return handle.upper()
+    else:
+        # Replace spaces with dashes.
+        new_handle = handle.replace(" ", "-")
+        # Remove any characters that are not alphanumeric or dash.
+        allowed = set(string.ascii_letters + string.digits + "-")
+        new_handle = "".join(ch for ch in new_handle if ch in allowed)
+        return new_handle.upper()
 
 def process_txt_file(txt_filename):
     """
@@ -197,7 +212,7 @@ def main():
         default_server, default_port = "whois.radb.net", 43
     elif args.instance == "tc":
         default_server, default_port = "whois.tc.net", 43
-    else:  # altdb
+    else:
         default_server, default_port = "whois.altdb.net", 43
 
     server = args.server if args.server is not None else default_server
@@ -211,7 +226,6 @@ def main():
 
     file_ext = os.path.splitext(args.file)[1].lower()
     if file_ext == ".txt":
-        # Use the file path as provided by the user.
         txt_filename = args.file
         try:
             json_dict, object_type, identifier = process_txt_file(txt_filename)
@@ -255,7 +269,7 @@ def main():
     print("Response from server:")
     print(json.dumps(result, indent=4))
 
-    # If submission was successful (summary.successful > 0) and the input was a TXT file,
+    # If submission was successful and the input was a TXT file,
     # update the generated JSON file's "status" field to "submitted".
     if file_ext == ".txt" and result.get("summary", {}).get("successful", 0) > 0:
         json_dict["status"] = "submitted"
