@@ -11,8 +11,9 @@ Options:
     --db-type        Target IRR database type: RADB or ALTDB (default: ALTDB)
     --instance       Select the target IRR instance:
                        "irrd"   - your own IRRd instance (defaults to 127.0.0.1; HTTP API on port 8080)
-                       "altdb"  - ALTDB (default, whois.altdb.net:43)
+                       "altdb"  - ALTDB (defaults to whois.altdb.net:43)
                        "radb"   - RADB (defaults to whois.radb.net:43)
+                       "tc"     - TC IRR (defaults to whois.tc.net:43)
     -o, --override   Override password if required
 """
 
@@ -179,9 +180,9 @@ def main():
     )
     parser.add_argument(
         "--instance",
-        choices=["irrd", "altdb", "radb"],
+        choices=["irrd", "altdb", "radb", "tc"],
         default="altdb",
-        help="Select the target IRR instance. 'irrd' defaults to 127.0.0.1 (HTTP API on port 8080), 'altdb' to whois.altdb.net:43, and 'radb' to whois.radb.net:43 (default: altdb)"
+        help="Select the target IRR instance. 'irrd' defaults to 127.0.0.1 (HTTP API on port 8080), 'altdb' to whois.altdb.net:43, 'radb' to whois.radb.net:43, and 'tc' to whois.tc.net:43 (default: altdb)"
     )
     parser.add_argument(
         "-o", "--override",
@@ -194,7 +195,9 @@ def main():
         default_server, default_port = "127.0.0.1", 8043  # Raw TCP default, but we'll override for HTTP API.
     elif args.instance == "radb":
         default_server, default_port = "whois.radb.net", 43
-    else:
+    elif args.instance == "tc":
+        default_server, default_port = "whois.tc.net", 43
+    else:  # altdb
         default_server, default_port = "whois.altdb.net", 43
 
     server = args.server if args.server is not None else default_server

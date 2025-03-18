@@ -1,0 +1,10 @@
+{
+    "object_type": "as-set",
+    "action": "add",
+    "data": {
+        "object_text": "as-set:         AS268151:AS-3RINTERNET-CUSTOMERS\ndescr:          ************************************************************\n                3R INTERNET customer cone networks\n                ************************************************************\nmembers:\nadmin-c: RUDSONCOSTA\ntech-c: RUDSONCOSTA\nremarks:        ==========================================================\n                3R INTERNET (AS268151)\n                Abuse/UCE: abuse@3rinternet.com.br\n                Network: noc@3rinternet.com.br\n                Peering: peering@3rinternet.com.br\n                Peering and Routing Policy: http://as268151.peeringdb.com/\n                Routing Policy and Communities: http://www.3rinternet.com.br/routingpolicy\n                Looking Glass: http://lg.3rinternet.com.br/\n                BGP View: http://bgpview.3rinternet.com.br:3000/\n                Website: https://3rinternet.com.br/\n                ==========================================================\nmnt-by:         MAINT-AS268151\nsource:         IRRD",
+        "identifier": "AS268151:AS-3RINTERNET-CUSTOMERS",
+        "passwords": []
+    },
+    "status": "submitted"
+}

@@ -2,8 +2,8 @@
     "object_type": "route",
     "action": "add",
     "data": {
-        "object_text": "route:         192.0.1.0/24\norigin:        AS12345\ndescr:         Example route\nmnt-by:        MAINT-TEST\nsource:         IRRD",
-        "identifier": "192.0.1.0/24",
+        "object_text": "route:         192.0.2.0/24\norigin:        AS12345\ndescr:         Example route\nmnt-by:        MAINT-TEST\nsource:         IRRD",
+        "identifier": "192.0.2.0/24",
         "passwords": ["Juniper"]
     },
     "status": "pending"

@@ -1,0 +1,10 @@
+{
+    "object_type": "route",
+    "action": "add",
+    "data": {
+        "object_text": "route:          138.59.152.0/22\norigin:         AS268151\ndescr:          3R INTERNET (AS268151) CIDR\nadmin-c: RUDSONCOSTA\ntech-c: RUDSONCOSTA\nremarks:        ==========================================================\n                This is a 3R INTERNET (AS268151) owned route object\n                Abuse/UCE: abuse@3rsolution.com.br\n                Network: noc@3rsolution.com.br\n                Peering: peering@3rsolution.com.br\n                Peering and Routing Policy: http://as268151.peeringdb.com/\n                Website: https://3rsolution.com.br\n                ==========================================================\nmnt-by:         MAINT-AS268151\nsource:         IRRD\nrpki-ov-state:  valid",
+        "identifier": "138.59.152.0/22",
+        "passwords": []
+    },
+    "status": "submitted"
+}

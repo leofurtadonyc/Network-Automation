@@ -1,45 +1,40 @@
 # MAKE SURE TO CHANGE THE DESIRED ACTION. OPTIONS ARE: add, modify, delete
 action: add
-aut-num:        AS263324
-as-name:        NETECOM
-descr:          Netecom Internet
-import:         from AS28329   accept ANY
-import:         from AS28260   accept ANY
-import:         from AS28210   accept ANY
-mp-import:      afi ipv6.unicast from AS28329   accept ANY
-mp-import:      afi ipv6.unicast from AS28260   accept ANY
-mp-import:      afi ipv6.unicast from AS28210   accept ANY
-export:         to AS28260   announce AS263324:AS-NETECOM-ALL
-export:         to AS28210   announce AS263324:AS-NETECOM-ALL
-export:         to AS28329   announce AS263324:AS-NETECOM-ALL
-mp-export:      afi ipv6.unicast to AS28260   announce AS263324:AS-NETECOM-ALL
-mp-export:      afi ipv6.unicast to AS28210   announce AS263324:AS-NETECOM-ALL
-mp-export:      afi ipv6.unicast to AS28329   announce AS263324:AS-NETECOM-ALL
-admin-c:        Rodrigo O. Gomes
+aut-num:        AS268151
+as-name:        AS268151
+descr:          3R INTERNET
+import:         from AS263324  accept ANY
+import:         from AS265272   accept ANY
+mp-import:      afi ipv6.unicast from AS263324   accept ANY
+mp-import:      afi ipv6.unicast from AS265272   accept ANY
+export:         to AS263324   announce AS268151:AS-3RINTERNET-ALL
+export:         to AS265272   announce AS268151:AS-3RINTERNET-ALL
+mp-export:      afi ipv6.unicast to AS263324   announce AS268151:AS-3RINTERNET-ALL
+mp-export:      afi ipv6.unicast to AS265272   announce AS268151:AS-3RINTERNET-ALL
+admin-c:        Rudson Costa
 tech-c:         Rudson Costa
-remarks:        ===============================================
-                NET&COM
-                Website: https://www.netecomcorp.com.br/
-                Status Page: http://status.netecom.com.br/
-                Looking Glass: http://lg.netecom.net.br/
-                BGP View: http://bgpview.netecom.com.br:3000/
-                Routing Policy and Communities: http://www.netecom.com.br/routingpolicy
-                ===============================================
+remarks:        ==========================================================
+                3R INTERNET (AS268151)
+                Abuse/UCE: abuse@3rsolution.com.br
+                Network: noc@3rsolution.com.br
+                Peering: peering@3rsolution.com.br
+                Peering and Routing Policy: http://as268151.peeringdb.com/
+                Website: https://3rsolution.com.br
+                ==========================================================
 remarks:        ===============================================
                 24 x 7 technical support regarding our BGP routing
-                policies or any inquiries concerning AS263324's
+                policies or any inquiries concerning AS268151's
                 security and routing policies please reach out to us
                 at the following channels:
-remarks:        Network issues / requests: noc@netecom.com.br
-                Peering issues / requests: peering@netecom.com.br
-                Abuse and SPAM : abuse@netecom.com.br
-                Or dial +55 (21) 3030-4600
+remarks:        Network issues / requests: noc@3rsolution.com.br
+                Peering issues / requests: peering@3rsolution.com.br
+                Abuse and SPAM : abuse@3rsolution.com.br
                 ===============================================
 remarks:        ============================================================
-                AS263324 Basic Interconnection Requirements
+                AS268151 Basic Interconnection Requirements
                 ============================================================
 remarks:        The following is required from your organization in order to
-                establish a BGP session with Net&Com at ASN 263324:
+                establish a BGP session with 3R INTERNET at ASN AS268151:
                 - The customer must use a RIR assigned ASN.
                 - The customer must have a route/route6 object for each prefix
                 it intends to announce to us, which might include its own
@@ -52,7 +47,7 @@ remarks:        The following is required from your organization in order to
                 - The aforementioned aut-num objects must have a clear routing
                 policy stating what as-sets are to be announced to us.
                 - This as-set MUST be informed on PeeringDB ("IRR as-set/route-set")
-remarks:        Net&Com strongly encourages you to use two simultaneous methods to
+remarks:        3R INTERNET strongly encourages you to use two simultaneous methods to
                 validate the origin of the prefixes you announce to us: IRR and ROA
                 (published in your RPKI regime). This is highly recommended because
                 some of our direct upstreams and also indirect upstreams may reject
@@ -66,5 +61,5 @@ remarks:        Last but not least, please feel free to contact us if you have a
                 We will definitely make ourselves available to increase the security of the
                 Internet, your experience as our customer/partner, and in the best
                 interest of our mutual agreement!
-mnt-by:         MAINT-AS263324
+mnt-by:         MAINT-AS268151
 source:         IRRD
