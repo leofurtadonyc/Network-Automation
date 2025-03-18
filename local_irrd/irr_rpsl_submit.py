@@ -141,45 +141,70 @@ def process_txt_file(txt_filename):
         },
         "status": "pending"
     }
-    # Store the multiple_routes flag at top level (not inside "data")
+    # Store the multiple_routes flag at top level (outside "data")
     json_dict["multiple_routes"] = multiple_routes
 
     return json_dict, object_type, identifier
 
-def generate_route_subobjects(rpsl_text):
+def generate_route_subobjects(rpsl_text, object_type):
     """
-    For a route object (IPv4), generates additional route objects.
-    It extracts the network from the first "route:" line and generates subdivisions
-    from (original prefix length + 1) up to /24.
+    For a route or route6 object, generates a list of route object texts that includes:
+      - The original object.
+      - Additional objects subdividing the network.
     
-    Returns a list of route object texts.
+    For IPv4 ("route"), subdivisions are generated from (original.prefixlen + 1) up to /24.
+    For IPv6 ("route6"), subdivisions are generated from (original.prefixlen + 1) up to /36.
+    If the original prefix is already at the maximum (or, for IPv6, if it is greater than /36),
+    an error is raised for IPv6 or no subdivisions are generated for IPv4.
+    
+    Returns a list of RPSL object texts.
     """
     import ipaddress
 
     lines = rpsl_text.splitlines()
     new_objects = []
-    # Find the route line (case-insensitive).
-    for i, line in enumerate(lines):
-        if line.lower().startswith("route:"):
-            parts = line.split(":", 1)
-            if len(parts) != 2:
-                raise Exception("Invalid route line format.")
-            route_val = parts[1].strip()
-            try:
-                network = ipaddress.IPv4Network(route_val, strict=False)
-            except Exception as e:
-                raise Exception(f"Error parsing route value '{route_val}': {e}")
-            # For each new prefix length from original.prefixlen+1 to 24:
-            for new_plen in range(network.prefixlen + 1, 25):
-                for subnet in network.subnets(new_prefix=new_plen):
-                    new_lines = []
-                    for line in lines:
-                        if line.lower().startswith("route:"):
-                            new_lines.append(f"route:         {subnet}")
-                        else:
-                            new_lines.append(line)
-                    new_objects.append("\n".join(new_lines))
-            break  # Only process the first "route:" line.
+    # Determine the keyword based on object_type.
+    keyword = "route6:" if object_type == "route6" else "route:"
+    # Find the route line.
+    route_line = None
+    for line in lines:
+        if line.lower().startswith(keyword):
+            route_line = line
+            break
+    if route_line is None:
+        raise Exception(f"No {keyword} line found in RPSL text.")
+    parts = route_line.split(":", 1)
+    if len(parts) != 2:
+        raise Exception("Invalid route line format.")
+    route_val = parts[1].strip()
+    try:
+        if object_type == "route6":
+            network = ipaddress.IPv6Network(route_val, strict=False)
+            max_prefix = 36
+        else:
+            network = ipaddress.IPv4Network(route_val, strict=False)
+            max_prefix = 24
+    except Exception as e:
+        raise Exception(f"Error parsing route value '{route_val}': {e}")
+
+    # For route6, ensure that the original prefix is not longer than /36.
+    if object_type == "route6" and network.prefixlen > max_prefix:
+        raise Exception(f"multiple_routes not allowed for {object_type} prefixes longer than /{max_prefix}.")
+
+    # Always include the original object.
+    new_objects.append(rpsl_text)
+    
+    # If the original prefix is less than the maximum, generate subdivisions.
+    if network.prefixlen < max_prefix:
+        for new_plen in range(network.prefixlen + 1, max_prefix + 1):
+            for subnet in network.subnets(new_prefix=new_plen):
+                new_lines = []
+                for line in lines:
+                    if line.lower().startswith(keyword):
+                        new_lines.append(f"{keyword:<12} {subnet}")
+                    else:
+                        new_lines.append(line)
+                new_objects.append("\n".join(new_lines))
     return new_objects
 
 def save_json_object(json_data, object_type, identifier):
@@ -261,7 +286,7 @@ def main():
 
     # Set default server and port based on the chosen instance.
     if args.instance == "irrd":
-        default_server, default_port = "127.0.0.1", 8043  # Raw TCP default, but we'll override for HTTP API.
+        default_server, default_port = "127.0.0.1", 8043  # Raw TCP default, but override for HTTP API.
     elif args.instance == "radb":
         default_server, default_port = "whois.radb.net", 43
     elif args.instance == "tc":
@@ -293,10 +318,10 @@ def main():
         passwords = json_dict["data"].get("passwords", [])
         # Retrieve the multiple_routes flag from top-level.
         multiple_routes = json_dict.get("multiple_routes", False)
-        if multiple_routes and object_type == "route":
+        if multiple_routes and object_type in ("route", "route6"):
             try:
-                generated_objects = generate_route_subobjects(base_rpsl_text)
-                # Update the JSON to include the generated objects.
+                generated_objects = generate_route_subobjects(base_rpsl_text, object_type)
+                # Add generated objects to JSON for record-keeping.
                 json_dict["generated_objects"] = generated_objects
                 objects_to_submit = generated_objects
             except Exception as e:
