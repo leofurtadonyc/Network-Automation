@@ -1,6 +1,0 @@
-P1#ping 100.65.255.11 source 100.65.255.1
-Type escape sequence to abort.
-Sending 5, 100-byte ICMP Echos to 100.65.255.11, timeout is 2 seconds:
-Packet sent with a source address of 100.65.255.1 
-!!!!!
-Success rate is 100 percent (5/5), round-trip min/avg/max = 1/1/2 ms

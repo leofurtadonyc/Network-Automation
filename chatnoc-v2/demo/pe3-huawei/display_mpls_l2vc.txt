@@ -1,2 +1,0 @@
-<PE3-Huawei>display mpls l2vc 
-<PE3-Huawei>

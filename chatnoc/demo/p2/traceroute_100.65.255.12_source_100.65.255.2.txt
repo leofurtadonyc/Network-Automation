@@ -1,5 +1,0 @@
-P2#traceroute 100.65.255.12 source loopback 0
-Type escape sequence to abort.
-Tracing the route to 100.65.255.12
-VRF info: (vrf in name/id, vrf out name/id)
-  1 100.65.0.13 8 msec *  4 msec

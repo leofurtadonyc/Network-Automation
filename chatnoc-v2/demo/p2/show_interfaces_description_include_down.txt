@@ -1,3 +1,0 @@
-P2#show interfaces description | include down
-Et1/1                          admin down     down     
-Et1/2                          admin down     down     
